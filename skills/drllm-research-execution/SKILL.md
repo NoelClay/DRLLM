@@ -51,7 +51,49 @@ S0가 생성한 세션 메타를 읽고, 주제를 서브쿼리로 분해, fetch
 - 실패한 서브쿼리는 대안 쿼리로 1회 재시도 후 실패 기록
 - 모든 서브쿼리 실패 → `status="research_failed"` 후 종료
 
-(나머지 섹션 4~9는 Task 11~12에서 확장)
+### 4. Layer 2 Call 1 — 응답 생성 (schema 강제)
+
+fetch 결과들을 결합하여 다음 JSON schema로 강제 응답 생성 (Gemini `response_schema`):
+
+````json
+{
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string", "minLength": 50 },
+    "key_points": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "type": "string", "minLength": 20 }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+          "quote": { "type": "string", "minLength": 15 },
+          "source_type": {
+            "type": "string",
+            "enum": ["web", "official_docs", "github", "paper", "forum"]
+          },
+          "relevance_to_subquery": { "type": "string" }
+        },
+        "required": ["url", "quote", "source_type", "relevance_to_subquery"]
+      }
+    }
+  },
+  "required": ["summary", "key_points", "citations"]
+}
+````
+
+**시스템 프롬프트**:
+
+> "아래 fetch 결과들에서만 `citations.url`과 `citations.quote`를 추출하라. 추측으로 URL/quote를 생성하지 말라. fetch 결과에 없는 정보는 반드시 생략하라."
+
+Gemini response_schema 실패 시 1회 재시도, 그래도 실패 시 에러 보고 및 종료.
+
+(나머지 §5~§9 는 Task 12 에서 확장)
 
 ## Hard Gate
 
