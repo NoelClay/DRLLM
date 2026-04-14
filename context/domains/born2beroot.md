@@ -2,23 +2,29 @@
 
 ## 우선 참조 URL (fetch MCP 힌트)
 
-- Debian 공식: https://www.debian.org/releases/stable/
-- Debian installation guide: https://www.debian.org/releases/stable/amd64/
+> 본 파일의 "버전 모호 명시 금지"(아래 §금지 사항) 원칙에 따라 `releases/stable/` 같은 moving target 금지. 모든 URL은 version-pinned deep-link.
+
+- Debian 12 공식: https://www.debian.org/releases/bookworm/
+- Debian 12 installation guide: https://www.debian.org/releases/bookworm/amd64/
 - MySQL 8.0 reference manual: https://dev.mysql.com/doc/refman/8.0/en/
-- MySQL InnoDB: https://dev.mysql.com/doc/refman/8.0/en/innodb-storage-engine.html
-- PHP manual: https://www.php.net/manual/en/
+- MySQL 8.0 InnoDB storage engine: https://dev.mysql.com/doc/refman/8.0/en/innodb-storage-engine.html
+- MySQL 8.0 InnoDB parameters: https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html
+- MySQL 8.0 InnoDB buffer pool resize: https://dev.mysql.com/doc/refman/8.0/en/innodb-buffer-pool-resize.html
+- PHP manual (ini core directives): https://www.php.net/manual/en/ini.core.php
 - PHP-FPM config: https://www.php.net/manual/en/install.fpm.configuration.php
-- lighttpd wiki: https://redmine.lighttpd.net/projects/lighttpd/wiki
+- lighttpd 1.4 config docs: https://redmine.lighttpd.net/projects/lighttpd/wiki/TutorialConfiguration
 - Netdata docs: https://learn.netdata.cloud/docs/
 
 ## 확립된 Axioms (재증명 불필요)
 
-- **RAM floor**: ~2.2GB raw, ~4.4GB with 2x safety (OS 1GB + MySQL 860MB + PHP 640MB + Netdata 200MB)
+> 수치 drift 시 즉시 fact-check 후 업데이트. 각 axiom 은 §우선 참조 URL 중 하나로 verifiable.
+
+- **RAM floor**: ~2.7GB raw (OS 1GB + MySQL 0.86GB + PHP 0.64GB + Netdata 0.2GB), ~5.4GB with 2x safety
 - **HDD floor**: ~9.5GB raw, ~19GB with 2x safety
-- **MySQL innodb_buffer_pool_size default**: 134217728 bytes (128 MiB)
-- **PHP memory_limit default**: 128M
-- **PHP-FPM pm.max_children default**: 5
-- **Netdata RAM default**: 100~200MB; disk ~3GB (3 tiers)
+- **MySQL innodb_buffer_pool_size default**: 134217728 bytes (128 MiB) — source: `innodb-buffer-pool-resize.html`
+- **PHP memory_limit default**: 128M — source: `ini.core.php`
+- **PHP-FPM pm.max_children**: 5 (Debian 12 `/etc/php/8.2/fpm/pool.d/www.conf` 예시값; PHP-FPM 자체 default 없음 — mandatory)
+- **Netdata RAM default**: 100~200MB; disk ~3GB (3 tiers, 각 1GiB)
 
 ## 학습자 프로파일
 
