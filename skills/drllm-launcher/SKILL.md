@@ -16,37 +16,77 @@ description: DRLLM session entry point. Parses user topic, generates session slu
 
 ## Protocol
 
-1. **주제 파싱**: 사용자 입력에서 topic 추출. 주제가 없거나 공백이면 재입력 요청 후 종료.
-2. **slug 생성**: topic을 kebab-case 영어 slug로 변환 (예: "InnoDB Buffer Pool 왜 128MiB?" → `innodb-buffer-pool-default-size`). 규칙:
-   - 영어 20자 이내
-   - 주요 명사 중심, 불용어 제거
-   - 하이픈 구분
-3. **세션 ID 생성**: `$(date +%Y%m%d)-<slug>`. 디렉토리 존재 시 `-2`, `-3` 접미사 순환.
-4. **디렉토리 생성**: `.drllm/sessions/<session_id>/`
-5. **metadata.json 작성** (아래 schema):
+### 1. 주제 파싱
 
-```json
+- slash command 경로: `{{args}}` 에서 주제 추출
+- 자연어 경로: 사용자 메시지에서 "학습 시작 / 공부" 전후 문구에서 주제 추출
+- 주제가 비어있으면 재입력 요청 후 종료 (아래 Hard Gate 참조)
+
+### 2. slug 생성 (LLM 호출)
+
+다음 규칙으로 topic → kebab-case 영어 slug 변환:
+
+- 최대 영어 20자
+- 주요 명사 2~3개로 축약 (예: "InnoDB Buffer Pool 왜 128MiB?" → `innodb-buffer-pool-default-size`)
+- 한국어 주제면 영어로 번역 후 slug화
+- 불용어(the, a, and, why, what 등) 제거
+- 하이픈 구분, 소문자만
+
+### 3. 세션 ID 생성
+
+````bash
+date_prefix=$(date +%Y%m%d)
+session_id="${date_prefix}-${slug}"
+
+# 충돌 처리
+if [ -d ".drllm/sessions/${session_id}" ]; then
+  for suffix in 2 3 4 5; do
+    candidate="${session_id}-${suffix}"
+    [ ! -d ".drllm/sessions/${candidate}" ] && session_id="${candidate}" && break
+  done
+fi
+````
+
+LLM은 위 로직을 shell 명령 혹은 Python으로 실행하여 최종 session_id 확정.
+
+### 4. 디렉토리 생성
+
+````bash
+mkdir -p ".drllm/sessions/${session_id}"
+````
+
+### 5. metadata.json 작성
+
+다음 schema 정확히 준수하여 `.drllm/sessions/${session_id}/metadata.json` 작성:
+
+````json
 {
-  "session_id": "<YYYYMMDD>-<slug>",
-  "topic": "<원본 주제>",
+  "session_id": "<session_id>",
+  "topic": "<원본 주제, 한국어 OK>",
   "slug": "<slug>",
   "domain": "born2beroot",
-  "started_at": "<ISO 8601 KST>",
+  "started_at": "<ISO 8601 with KST offset, e.g. 2026-04-14T10:30:00+09:00>",
   "completed_at": null,
   "status": "research",
   "url_verify_total": 0,
   "url_verify_count": 0,
   "url_verify_ratio": 0.0
 }
-```
+````
 
-6. **사용자에게 세션 시작 알림** (한국어): "세션 `<session_id>` 시작. 리서치 진행..."
-7. **Marker tool 호출**: `save_memory("__drllm_s0_done_<session_id>")` — AfterTool hook이 감지하여 `drllm-research-execution` 자동 활성화.
+### 6. 사용자에게 알림 (한국어)
+
+> "세션 `<session_id>` 시작. 주제: <topic>. 리서치 진행 중..."
+
+### 7. Marker tool 호출
+
+`save_memory("__drllm_s0_done_<session_id>")`
 
 ## Hard Gate
 
-- 주제 없음 → 재입력 요청, 세션 미생성, marker tool 호출 금지
-- metadata.json 작성 실패 → 사용자에게 에러 보고, marker tool 호출 금지
+- 주제 없음/공백: 사용자에게 "학습하고 싶은 주제를 알려주세요 (예: 'InnoDB Buffer Pool의 기본값')" 요청 + 세션 미생성 + marker 미호출
+- 디렉토리 생성 실패: stderr 에러 출력 + marker 미호출
+- metadata.json 작성 실패: 방금 생성한 세션 디렉토리 rm -rf 후 에러 보고
 
 ## Outputs
 
