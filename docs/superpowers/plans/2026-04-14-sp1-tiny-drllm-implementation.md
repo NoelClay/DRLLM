@@ -627,33 +627,16 @@ git commit -m "feat: S4 drllm-adaptive-tutoring skeleton + tutor command"
 
 - [ ] **Step 1: smoke test 체크리스트 작성**
 
-Create `tests/manual/smoke-step2.md`:
+> ⚠️ **Authoritative source**: `/home/namykim/workspace/DRLLM/tests/manual/smoke-step2.md` (git HEAD). 초기 literal은 Task 8 code-review에서 Critical 1 (Gemini CLI 문법 오류 `/extensions drllm`) + Important 3 (`/extensions list` 사용, S2/S4 exact header assertion, 진단 3-rung ladder) + Minor 1 (`/drllm:` autocomplete trigger) 발견되어 수정됨. 재실행 구현자는 HEAD 파일 사용.
 
-```markdown
-# Step 2 Smoke Test — 3 스킬 로딩 확인
+주요 수정사항:
 
-## Setup
-
-```bash
-cd /home/namykim/workspace/DRLLM
-gemini extensions link .
-```
-
-## Checklist
-
-- [ ] `gemini` 진입 후 `/extensions` 명령으로 DRLLM 표시 확인
-- [ ] `/extensions drllm` 으로 버전 0.1.0, 3 skills, 3 commands 표시
-- [ ] Gemini 대화창에서 `activate_skill("drllm-launcher")` 수동 호출 → S0 본문("S0 — DRLLM Launcher") 반환 확인
-- [ ] `activate_skill("drllm-research-execution")` 수동 호출 → S2 본문 반환 확인
-- [ ] `activate_skill("drllm-adaptive-tutoring")` 수동 호출 → S4 본문 반환 확인
-- [ ] `/drllm:launch` 자동완성으로 3개 command 표시 확인 (launch, research, tutor)
-
-## 실패 시
-
-- DRLLM 미표시: `gemini-extension.json` 오류 → Task 1 재확인
-- activate_skill 실패: SKILL.md frontmatter `name` 필드 문자열 mismatch → Task 5~7 name 확인
-- command 미표시: TOML 오류 → 각 toml 파일 `description` / `prompt` 필드 확인
-```
+- `/extensions` → `/extensions list` (실제 Gemini CLI lister subcommand)
+- `/extensions drllm` (invalid syntax) 제거 → `/extensions list` 행 확인 + `~/.gemini/extensions/` symlink 존재 확인 2-rung으로 대체
+- activate_skill 반환 assertion → exact header string 3종 (`S0 — DRLLM Launcher` / `S2 — DRLLM Research Execution` / `S4 — DRLLM Adaptive Tutoring`)
+- `/drllm:launch` → `/drllm:` (colon trigger로 모든 subcommand autocomplete)
+- 진단 섹션 "DRLLM 미표시" 를 3-rung ladder (symlink → enable → manifest schema) 로 확장
+- 진단 섹션 전반에 `§0-5 Fail loud` anchor 추가
 
 - [ ] **Step 2: 실제 manual smoke 실행**
 
