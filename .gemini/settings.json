@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "AfterTool": [
+      {
+        "match": {
+          "tool_name": "save_memory"
+        },
+        "hook": {
+          "command": "${workspacePath}/hooks/auto-chain-skills.sh"
+        }
+      }
+    ]
+  }
+}
