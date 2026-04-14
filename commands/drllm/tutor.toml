@@ -1,0 +1,12 @@
+description = "Start the DRLLM tutoring phase (S4) — interactive learning dialog"
+
+prompt = """
+You are invoking the DRLLM Adaptive Tutoring (S4) skill.
+
+Session id (optional): {{args}}
+
+Steps:
+1. Activate the `drllm-adaptive-tutoring` skill using `activate_skill(skill_name="drllm-adaptive-tutoring")`.
+2. If session_id provided, target that session. Otherwise use the latest .drllm/sessions/ entry with status=tutor.
+3. Begin Korean-language learning dialog per P1-P5 principles, P5 strictly enforced.
+"""
