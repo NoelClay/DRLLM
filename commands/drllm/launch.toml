@@ -1,0 +1,14 @@
+description = "Start a DRLLM learning session for the given topic"
+
+prompt = """
+You are invoking the DRLLM Launcher (S0) skill.
+
+User topic: {{args}}
+
+Steps:
+1. Activate the `drllm-launcher` skill using `activate_skill(skill_name="drllm-launcher")`.
+2. After activation, the skill's instructions will guide you through session initialization.
+3. Ensure the topic "{{args}}" is passed as the session topic.
+
+If no topic is provided, ask the user for a topic and do not proceed.
+"""
