@@ -222,6 +222,8 @@ git commit -m "feat: Born2beRoot domain profile"
 
 - [ ] **Step 1: Schema test script 작성**
 
+> ⚠️ **Authoritative source**: `/home/namykim/workspace/DRLLM/tests/schema/test-extension.sh` (git HEAD). 초기 literal 은 Task 4 code-review 에서 2 Important 발견되어 수정됨(I1 regex anchoring, I2 yq mikefarah guard). 재실행 구현자는 HEAD 파일 사용.
+
 Create `tests/schema/test-extension.sh`:
 
 ```bash
@@ -231,13 +233,18 @@ set -euo pipefail
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 
+# Require mikefarah yq v4 (apt yq = kislyuk python-yq wrapper, 문법 incompatible)
+if ! yq --version 2>&1 | grep -qi 'mikefarah'; then
+  fail "yq mikefarah v4 required (found: $(yq --version 2>&1 || echo none)). Install: sudo snap install yq"
+fi
+
 # gemini-extension.json
 jq -e '.name and .description and .version and .contextFileName' \
   gemini-extension.json > /dev/null \
   || fail "gemini-extension.json missing required fields"
 
-# GEMINI.md must @import drllm-core
-grep -q '^@\./context/drllm-core\.md' GEMINI.md \
+# GEMINI.md must @import drllm-core — exact line or followed by space/tab only
+grep -Eq '^@\./context/drllm-core\.md([[:space:]]|$)' GEMINI.md \
   || fail "GEMINI.md must @import context/drllm-core.md"
 
 # drllm-core.md exists
