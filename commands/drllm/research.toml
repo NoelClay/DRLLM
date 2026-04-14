@@ -1,0 +1,11 @@
+description = "Execute DRLLM research phase (S2) for the current session"
+
+prompt = """
+You are invoking the DRLLM Research Execution (S2) skill.
+
+Session id (optional): {{args}}
+
+Steps:
+1. Activate the `drllm-research-execution` skill using `activate_skill(skill_name="drllm-research-execution")`.
+2. If session_id is provided, target that session. Otherwise use the latest .drllm/sessions/ entry.
+"""
