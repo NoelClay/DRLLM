@@ -1373,14 +1373,16 @@ setup() {
 @test "S0 완료 → S2 체인" {
   run bash -c 'echo "{\"tool_name\":\"save_memory\",\"tool_input\":\"__drllm_s0_done_xxx\",\"stop_hook_active\":false}" | '"$HOOK"
   [ "$status" -eq 0 ]
-  skill=$(echo "$output" | jq -r '.hookSpecificOutput.tailToolCallRequest.args.skill_name')
+  # bats 1.x `run` merges stderr into $output; hook emits stderr log before JSON.
+  # tail -1 extracts the JSON line (last line) for jq parsing.
+  skill=$(echo "$output" | tail -1 | jq -r '.hookSpecificOutput.tailToolCallRequest.args.skill_name')
   [ "$skill" = "drllm-research-execution" ]
 }
 
 @test "S2 완료 → S4 체인" {
   run bash -c 'echo "{\"tool_name\":\"save_memory\",\"tool_input\":\"__drllm_s2_done_xxx\",\"stop_hook_active\":false}" | '"$HOOK"
   [ "$status" -eq 0 ]
-  skill=$(echo "$output" | jq -r '.hookSpecificOutput.tailToolCallRequest.args.skill_name')
+  skill=$(echo "$output" | tail -1 | jq -r '.hookSpecificOutput.tailToolCallRequest.args.skill_name')
   [ "$skill" = "drllm-adaptive-tutoring" ]
 }
 
