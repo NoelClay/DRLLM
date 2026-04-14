@@ -1,0 +1,19 @@
+{
+  "name": "DRLLM",
+  "description": "Domain-agnostic Deep Research + LearnLM tutoring framework (v0.1 Tiny)",
+  "version": "0.1.0",
+  "contextFileName": "GEMINI.md",
+  "settings": [
+    {
+      "name": "DRLLM_DOMAIN_PROFILE",
+      "description": "Path to domain profile markdown (relative to extension root)",
+      "default": "context/domains/born2beroot.md"
+    },
+    {
+      "name": "DRLLM_RESEARCH_MAX_SUBQUERIES",
+      "description": "Max subqueries S2 decomposes a topic into",
+      "default": "4"
+    }
+  ],
+  "mcpServers": {}
+}
