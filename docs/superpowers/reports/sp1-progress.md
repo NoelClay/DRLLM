@@ -1,10 +1,11 @@
 # SP-1 Progress & Session Resume Guide
 
 **Branch**: `feat/sp1-tiny-drllm`
-**Last updated**: 2026-04-14 (session break)
-**Completed**: 15 / 28 Tasks (54%)
+**Last updated**: 2026-04-14 (STEP 4 code-complete)
+**Completed**: 19 / 28 Tasks (68%)
 **M1 micro-POC 1차**: ✅ PASS
-**Next**: STEP 4 (Task 16~19) — auto-chain hook
+**STEP 4 smoke**: ⏳ pending user run (smoke-step4.md)
+**Next**: STEP 5 (Task 20~24) — Measurement
 
 ---
 
@@ -84,20 +85,27 @@ Claude Code 세션에서:
 
 합격 조건 4/4 ✅ **PASS**.
 
----
-
-## 3. 남은 Task (13개)
-
 ### STEP 4 (Task 16~19) — Auto-chain hook
 
-| Task | 범위 |
-|------|------|
-| 16 | `hooks/auto-chain-skills.sh` 작성 (bash + jq, save_memory marker 감지) |
-| 17 | `tests/hooks/auto-chain-skills.bats` (5 bats 테스트) |
-| 18 | `.gemini/settings.json` hook 등록 |
-| 19 | `tests/manual/smoke-step4.md` + 자동 체인 검증 smoke |
+| Task | 산출물 | Commit |
+|------|--------|--------|
+| 16 | `hooks/auto-chain-skills.sh` | `8458d97` |
+| 17 | `tests/hooks/auto-chain-skills.bats` (5 tests) + plan `tail -1` sync | `d53d3ed` + `4258c33` + `7f05563` |
+| 18 | `.gemini/settings.json` (AfterTool save_memory → hook) | `b1dcaad` |
+| 19 | `tests/manual/smoke-step4.md` + plan sync + I1~I4 fix | `1f76bb5` + `7221ff2` + `66ff871` |
 
-**STEP 4 milestone** (Commit Point 4): "feat: auto-chain hook"
+**STEP 4 milestone** (Commit Point 4 = code-complete): `7221ff2 feat: auto-chain hook`
+
+**STEP 4 code 결과**:
+- L1 schema + L2 bats 5/5 통과, `./tools/run-tests.sh` 전체 PASS
+- hook 5 시나리오 검증 완료 (S0→S2 chain / S2→S4 chain / stop_hook_active guard / 관련 없는 tool / save_memory 비-marker)
+- 코드 리뷰 4건 모두 APPROVED (최종 2건은 APPROVED WITH CONCERNS — 모두 plan-level 또는 live smoke 로 검증 예정 항목)
+
+**STEP 4 smoke 대기 중**: `tests/manual/smoke-step4.md` — 사용자 interactive Gemini CLI 로 `/drllm:launch` 1회 실행, S0→S2→S4 자동 체인 관찰 필요.
+
+---
+
+## 3. 남은 Task (9개)
 
 ### STEP 5 (Task 20~24) — Measurement
 
@@ -184,22 +192,23 @@ gemini extensions link .
 
 ## 6. 다음 세션 진입 순서
 
-1. 본 파일 Read (특히 §5.1 v2.1 Performance Fix 확인)
-2. **Gemini CLI 재link 필수** (drllm-core v2.1 반영):
+1. 본 파일 Read (특히 §5.1 v2.1 Performance Fix + §2 STEP 4 결과 확인)
+2. **Gemini CLI 재link + hook 등록** (STEP 4 `.gemini/settings.json` 반영):
    ```bash
    cd /home/namykim/workspace/DRLLM && git pull origin feat/sp1-tiny-drllm
    gemini extensions uninstall DRLLM 2>/dev/null; gemini extensions link .
    gemini extensions config DRLLM DRLLM_DOMAIN_PROFILE context/domains/born2beroot.md
    gemini extensions config DRLLM DRLLM_RESEARCH_MAX_SUBQUERIES 4
    ```
-3. 세션 모델 고정 (권장): `/model gemini-3-pro` (또는 settings.json `defaultModel`)
-4. (선택) smoke-step3 재실행으로 v2.1 효과 확인 — 예상 turn latency: 5분 → 1~2분, 응답 중복 제거
-5. `docs/superpowers/plans/2026-04-14-sp1-tiny-drllm-implementation.md` Task 16 섹션 Read
-6. Task 16 implementer subagent dispatch (reports convention 적용)
-7. → Task 17/18/19 순차 진행
-8. STEP 4 milestone commit (auto-chain hook)
-9. STEP 4 사용자 smoke (smoke-step4.md — `/drllm:launch` 1회로 S0→S2→S4 자동 체인 확인)
-10. STEP 5 (measurement) 진입
+3. 세션 모델 고정 (권장): `/model gemini-3-pro`
+4. **STEP 4 smoke 실행** (`tests/manual/smoke-step4.md`):
+   - `/hooks` 로 AfterTool save_memory hook 등록 + `${workspacePath}` 절대경로 resolve 확인
+   - `/drllm:launch "InnoDB Buffer Pool 왜 128MiB?"` 1회로 S0→S2→S4 자동 체인 관찰
+   - stderr 에서 `[drllm-hook] S0 done detected` / `S2 done detected` 로그 2줄 확인
+   - 합격 조건 4개 검증 (smoke-step4.md 참조)
+5. smoke 합격 → Task 20 (STEP 5 Measurement) 진입
+6. smoke 실패 → smoke-step4.md 실패 시 섹션 diagnostic path 확인 + `${workspacePath}` 템플릿 키 이슈면 `.gemini/settings.json` 을 절대경로로 교체 (Task 18 plan 재조정)
+7. (이하 STEP 5~7 진행은 plan.md 참조)
 
 ---
 
