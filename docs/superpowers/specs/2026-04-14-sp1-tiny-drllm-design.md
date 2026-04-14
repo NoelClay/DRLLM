@@ -49,7 +49,7 @@ Tiny DRLLM v0.1은 **3스킬(S0/S2/S4) 최소 구성**으로 "LearnLM 교수법�
 | Q4 | 언어 정책 | (C) 이중 언어 레이어 분리 | frontmatter/description/hook = 영어, 본문·사용자 응답 = 한국어 |
 | Q5 | 오프라인 모드 | skip (v1.0+) | 해당 없음 |
 | Q6 | S2 쿼리 분해 방식 | (B) S2 내부 인라인 분해 | S2 SKILL.md 첫 단계: LLM 주제 분해 (2~4 서브쿼리) |
-| Q7 | P5 메타인지 체크 트리거 | (B) LLM 판단 (subtopic 완료 감지) | S4 SKILL.md: subtopic 경계 인지 시 P5 강제 |
+| Q7 | P5 메타인지 체크 트리거 | (B) LLM 판단 → **v2 refinement (2026-04-14)**: Structural Trigger T1~T4 + LLM 보조. 근거: code-review 이슈 C1/C2 (LLM 판단 단독은 silent skip loophole). authoritative: `context/drllm-core.md` §3 P5.1~P5.4. | S4: learning-log 읽기 + 단순 카운트로 T1~T4 평가; 하나라도 참 → P5 발동; 참이지만 미발동 → `[P5_MISSING]` 필수. |
 | Q8 | M1 POC 합격 기준 | (C) Mixed: Manual + P5≥0.70 + URL verify≥0.95 | §1.2 + §6 |
 
 ---
@@ -174,10 +174,17 @@ Domain-agnostic Deep Research + LearnLM tutoring framework.
   3. 대화 시작 (한국어):
      - 개념 소개 (research 결과 기반)
      - [SUBTOPIC] 이벤트 기록 시 subtopic 경계
-     - subtopic 완료 감지 시 (LLM 판단) → P5 체크 강제
-       "한 문장으로 [X]를 설명해줄 수 있어?"
-     - 사용자 답변 평가 (LLM: correct/partial/incorrect/skip)
-     - [P5_CHECK] 또는 [P5_SKIP] 이벤트 기록
+     - 매 turn 시작 시 T1~T4 structural trigger 평가 (LLM 판단 X, grep/count only)
+       T1: 직전 턴에서 key_points 용어 첫 등장 ≥ 2
+       T2: key_point 인덱스 전환 (i ≠ j)
+       T3: 직전 [P5_CHECK|P5_MISSING] 이후 [SUBTOPIC] ≥ 2
+       T4: 사용자 입력이 ^(이해했어|확인해줘|맞아\?|체크해)
+     - 하나라도 참 → P5 발동: "한 문장으로 [X]를 설명해줄 수 있어?"
+     - 사용자 답변 평가 rubric (% 금지): correct/partial/incorrect/skip
+       correct: 핵심 용어 ≥ 50% + 논리 정합
+       partial: 둘 중 하나만 충족
+       skip: 정규식 매치 또는 회피 reason 인용
+     - [P5_CHECK] / [P5_SKIP] / [P5_MISSING] 이벤트 기록 (미발동 턴도 미기록 금지 — §0-3)
   4. 세션 완료 시:
      - metadata.json 갱신: completed_at, status = "done"
      - [COMPLETE] 이벤트 기록
@@ -228,7 +235,7 @@ citations_verified: 5/5
 ```
 
 **learning-log.md** (S4 산출물, §6.1 포맷):
-`[SUBTOPIC]` / `[SOURCE]` / `[P5_CHECK]` / `[P5_SKIP]` / `[COMPLETE]` 이벤트 append-only.
+`[SUBTOPIC]` / `[SOURCE]` / `[P5_CHECK]` / `[P5_SKIP]` / `[P5_MISSING]` / `[COMPLETE]` 이벤트 append-only. authoritative schema는 `context/drllm-core.md` §5.3.
 
 ### 4.3 Hook 동작 (auto-chain-skills.sh)
 
@@ -340,12 +347,16 @@ echo '{}'
 
 **후처리**: S2가 verified=false citation 제거 후 research-results.md 작성. `url_verify_ratio = verified_count / total_citations_count` metadata.json에 기록.
 
-### 5.3 Exact Substring Match 규칙 (Call 2 검증)
+### 5.3 Exact Substring Match 규칙 (Call 2 검증) — v2 Robust
 
-- 공백·개행 normalize: `\s+` → 단일 공백
-- 대소문자: 유지 (변조 감지)
+> **Authoritative**: `context/drllm-core.md` §4.1 Quote Normalization 규칙.
+
+- normalize: `[\s\u00A0\t\n\r]+` → 단일 space (`\s+` 단독은 non-breaking space·tab 놓침)
+- 양 끝 strip
+- 대소문자: 유지 (case-sensitive, 변조 감지)
 - 최소 매치 길이: 15자 (schema minLength와 동일)
-- 매치 실패 시 verified=false, reason에 구체 이유
+- normalize는 quote와 fetch body **양쪽에 동일하게 적용**된 뒤 substring match
+- 매치 실패 시 verified=false, reason에 구체 이유 (어느 단계에서 실패했는지)
 
 ### 5.4 v0.1 한계 및 v0.5 진화
 
@@ -382,13 +393,16 @@ status: in_progress
 
 ### 6.2 이벤트 기록 책임
 
+> **v2 Refinement (2026-04-14)**: Q7 B (LLM 판단) 단독은 silent-skip loophole → Structural Trigger (T1~T4) 기반으로 전환. authoritative: `context/drllm-core.md` §3 P5.1~P5.4 + §5.3.
+
 | 이벤트 | 기록자 | 근거 |
 |--------|-------|------|
-| `[SUBTOPIC]` | S4 LLM | Q7 B (LLM이 subtopic 경계 판단) |
+| `[SUBTOPIC]` | S4 | research-results.md key_point 인덱스 전환 감지 시 |
 | `[SOURCE]` | S2 batch append (v0.1) | v0.5에서 post-fetch hook 분리 |
-| `[P5_CHECK]` | S4 LLM | score 평가 포함 |
-| `[P5_SKIP]` | S4 LLM | 사용자 의도 해석 |
-| `[COMPLETE]` | S4 LLM 또는 세션 종료 | 세션 end marker |
+| `[P5_CHECK]` | S4 | T1~T4 중 참 → 발동 + rubric score |
+| `[P5_SKIP]` | S4 | 사용자 입력 skip 정규식 매치 또는 회피 reason 인용 |
+| `[P5_MISSING]` | S4 (§0-3 No silent drop) | T1~T4 중 참이지만 발동 실패 — **미기록 시 세션 측정 무효** |
+| `[COMPLETE]` | S4 또는 세션 종료 hook | total_checks + correct + partial + skip + **missing** + duration |
 
 ### 6.3 Aggregate 집계 스크립트
 

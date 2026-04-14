@@ -151,78 +151,23 @@ Domain-agnostic Deep Research + LearnLM tutoring framework.
 @./context/drllm-core.md
 ```
 
-- [ ] **Step 2: context/drllm-core.md 작성**
+- [ ] **Step 2: context/drllm-core.md 작성 (v2 Robust)**
 
-Create `context/drllm-core.md` (한국어 본문, LearnLM P5 강제 + Universal File Resolution):
+> ⚠️ **Authoritative source**: `/home/namykim/workspace/DRLLM/context/drllm-core.md` (git HEAD).
+> 본 plan 의 초기 literal block은 v2 로 대체되었음 (commit `91e8277`, 2026-04-14).
+> Task 2 를 (재)실행하는 구현자는 본 plan 블록이 아닌 **HEAD 의 파일 내용** 을 사용한다.
 
-```markdown
-# DRLLM Core — 학습 튜터 공통 가이드
+v2 주요 변경사항 요약(검증용):
 
-이 문서는 DRLLM 모든 스킬(S0/S2/S4)이 공통으로 따르는 원칙을 정의한다.
-
-## 1. Universal File Resolution Protocol
-
-파일 경로를 찾을 때 다음 순서로 탐색한다:
-1. 절대 경로 (이미 절대면 그대로)
-2. `$PWD` 기준 상대 경로
-3. Extension 루트 기준 (`${extensionPath}`)
-4. `.drllm/sessions/<current_session_id>/` 기준
-5. 그래도 못 찾으면 에러 반환, 추정 금지
-
-## 2. 언어 정책
-
-- **사용자 대면 응답 / 학습 대화**: 한국어
-- **내부 로깅 / 메타데이터 / hook 출력**: 영어
-- **citations quote**: 원문 그대로 (영어 문서는 영어, 한국어 문서는 한국어)
-
-## 3. LearnLM 교수법 (v0.1: P5 강제)
-
-### P1 Inspire Active Learning (soft)
-능동적 질문으로 유도하라. "X는 무엇인가?"보다 "X가 0이면 무슨 일이 일어날까?" 유형 선호.
-
-### P2 Manage Cognitive Load (soft)
-한 응답에 한 개념. 여러 개념 등장 시 가장 중요한 하나에 집중 후 나머지는 후속 대화로.
-
-### P3 Adapt to the Learner (soft)
-학습자가 "VR 엔지니어 + 42school C/systems 경험" 배경을 가진다고 가정. 기초 설명 스킵, 기술 용어 직접 사용. "쉽게" 요청 시에만 ELI5.
-
-### P4 Stimulate Curiosity (soft)
-사실을 "왜 그럴까"로 연결하라. OS/커널 레벨 이유가 있다면 함께 설명.
-
-### P5 Deepen Metacognition (**HARD — 반드시 준수**)
-
-새로운 subtopic 설명이 끝났다고 판단되면 **반드시** 인출 체크를 발동한다:
-
-> "한 문장으로 [X]를 설명해줄 수 있어? 동료를 가르치듯."
-
-사용자 답변 평가:
-- **correct**: 핵심 키워드와 논리가 모두 맞음 (≥90%)
-- **partial**: 일부 맞지만 핵심 누락 또는 오해 있음 (50~89%)
-- **incorrect**: 틀렸거나 무관한 답변 (<50%)
-- **skip**: 사용자가 "나중에", "그냥 계속", "skip" 등 회피 의사 표시
-
-평가 결과를 learning-log.md에 반드시 기록.
-
-## 4. 출처 규율 (v0.1)
-
-- 모든 출처 URL은 `[도구 호출 결과]` 에서만 추출. LLM 메모리에서 생성 금지.
-- URL을 수정/축약하지 말고 원문 그대로 유지.
-- citations.quote는 fetch 결과 본문의 exact substring이어야 함 (공백 normalize 허용).
-- 검증 실패한 citation은 최종 응답에서 제외.
-
-## 5. 세션 상태 파일
-
-- **metadata.json**: 세션 메타 (S0가 생성, S2/S4가 갱신)
-- **research-results.md**: S2 산출물 (S4가 읽음)
-- **learning-log.md**: S4 대화 이벤트 append-only
-- 경로: `.drllm/sessions/<YYYYMMDD>-<slug>/`
-
-## 6. HARD STOPS
-
-- P5 체크 skip 시 `[P5_SKIP]` 이벤트 반드시 기록 후 계속
-- citations 없이 research-results.md 작성 금지
-- 확실하지 않으면 "출처 확인 필요" 표시, 추측 답변 금지
-```
+- **§0 Robust Design Principles** (신설, 7 원칙): LLM 판단 최소화 / Evidence-first / No silent drop / Strict schema / Fail loud / Explicit state transitions / Contracts in drllm-core.md
+- **§1.1 `current_session_id` 발견 계약** (신설): 인자 → `.drllm/sessions/LATEST` → mtime 기반 status 필터링 → 에러. S0/S2/S4 각자 동작 명시.
+- **§3 P5 Structural Trigger**: LLM 판단 제거. T1(새 용어 ≥2) / T2(key-point 경계 전환) / T3(간격 초과) / T4(사용자 명시 요청) 4 조건.
+- **§3 P5.3 Rubric**: `%` 제거. key_point 용어 과반 + 논리 정합 기준으로 correct/partial/incorrect/skip 판정.
+- **§3 P5.4 Skip 패턴**: 정규식 `^(?i)(넘어가|다음|pass|skip|나중에|됐어|건너뛰|그냥 계속)` + semantic 회피 reason 인용 기록 의무.
+- **§4.1 Quote Normalization**: `[\s\u00A0\t\n\r]+ → 단일 space`, strip, case-sensitive, min 15자.
+- **§5 Schemas**: metadata.json / research-results.md / learning-log.md strict schema. learning-log 이벤트 6종 (SUBTOPIC / SOURCE / P5_CHECK / P5_SKIP / **P5_MISSING 신규** / COMPLETE).
+- **§6 HARD STOPS 6개로 확장**: P5_MISSING 미기록 = 세션 측정 무효.
+- **§7 재실행·복구 원칙** (신설).
 
 - [ ] **Step 3: @import resolution 확인**
 
@@ -1182,36 +1127,49 @@ status: in_progress
 
 - 이미 검증된(verified=true) citations만 인용. verified=false는 인용 금지.
 
-#### 3.4 P5 메타인지 체크 (HARD 강제)
+#### 3.4 P5 메타인지 체크 (HARD 강제) — v2 Robust
 
-subtopic 완료가 감지되면 (LLM 판단) **반드시** 다음을 발동:
+> **Authoritative contract**: `context/drllm-core.md` §3 (P5.1 trigger / P5.2 prompt / P5.3 rubric / P5.4 skip) + §5.3 (learning-log 이벤트 schema) + §6 (HARD STOPS).
+> 아래는 S4 구현자가 컨텍스트 전환 없이 따라갈 수 있도록 *참조용 요약*. 해석이 충돌하면 **drllm-core.md 가 authoritative**.
 
-1. P5 질문 생성 (한국어):
-   > "한 문장으로 [X]를 설명해줄 수 있어? 동료를 가르치듯."
+**매 S4 turn 시작 시 (§3 P5.1)**: T1~T4 조건 4개를 learning-log.md + research-results.md 기반 단순 카운트로 평가. **LLM 판단 금지**.
 
-2. 사용자 답변 수신 후 평가 (LLM 자체 판단):
-   - **correct**: 핵심 키워드 + 논리 모두 맞음 (≥90%)
-   - **partial**: 일부 맞고 일부 누락/오해 (50~89%)
-   - **incorrect**: 틀림 (<50%)
-   - **skip**: "나중에", "그냥 계속", "skip" 등 회피
+- **T1** — 직전 턴 응답에서 "key_points 용어 중 세션 첫 등장" term 수 ≥ 2
+- **T2** — 이번 턴 주제 key_points 인덱스 ≠ 직전 턴 인덱스
+- **T3** — 직전 `[P5_CHECK]` 또는 `[P5_MISSING]` 이후 `[SUBTOPIC]` 이벤트 ≥ 2개
+- **T4** — 사용자 입력이 `^(이해했어|확인해줘|맞아\?|체크해)` 매치
 
-3. learning-log.md append:
+**하나라도 참 → P5 발동**. 모두 거짓 → P5 불필요(정상).
+**하나 이상 참인데 발동 안 함 → `[P5_MISSING] triggers=<매치된 T> | reason="<왜>"` 이벤트 기록 필수** (§0-3, §6-1).
 
-   ```
-   [P5_CHECK] Q="<질문>" | A="<사용자 답변>" | score=<correct|partial|incorrect>
-   ```
+P5 prompt 문자열 (§3 P5.2, 변형 금지):
 
-   또는 skip 시:
+> "한 문장으로 [X]를 설명해줄 수 있어? 동료를 가르치듯."
 
-   ```
-   [P5_SKIP] reason="<사용자 이유 요약>"
-   ```
+`[X]` = research-results.md key_points 중 현재 대상 항목 이름.
 
-4. 평가별 후속 처리 (P3 Adapt to the Learner):
-   - correct → "맞아요. 그럼 다음 subtopic으로..."
-   - partial → "거의 맞아요. 다만 <구체적 수정>..."
-   - incorrect → "한 번 더 설명할게요. <재설명>" (다시 설명 후 재체크)
-   - skip → 학습 계속, 단 learning-log에 기록
+평가 rubric (§3 P5.3, **% 금지**):
+
+- **correct** — (a) 해당 key_point 핵심 용어의 **과반(≥ 50%)** 을 사용자 답변에 포함 **AND** (b) 해당 key_point 논리와 모순 없음
+- **partial** — (a) 또는 (b) 중 하나만 충족
+- **incorrect** — (a)와 (b) 모두 미충족
+- **skip** — 사용자 입력이 `^(?i)(넘어가|다음|pass|skip|나중에|됐어|건너뛰|그냥 계속)` 매치, 또는 명확한 회피 의사 (reason 필드에 사용자 문장 인용 기록)
+
+learning-log.md append (§5.3 이벤트 schema 준수):
+
+```
+[P5_CHECK] Q="<질문>" | A="<사용자 답변>" | score=<correct|partial|incorrect>
+[P5_SKIP] reason="<사용자 문장 인용>"
+[P5_MISSING] triggers=T1,T3 | reason="<왜 발동 안 했는지>"
+```
+
+평가별 후속 처리 (P3 Adapt to the Learner):
+
+- correct → "맞아요. 그럼 다음 subtopic으로..."
+- partial → "거의 맞아요. 다만 <구체적 수정>..."
+- incorrect → "한 번 더 설명할게요. <재설명>" (재설명 후 재체크)
+- skip → 학습 계속, `[P5_SKIP]` 기록
+- missing (구현자가 발동 실패) → 직전 턴 응답 종료 직전에 `[P5_MISSING]` append + 이번 턴에서 즉시 P5 재발동 시도
 
 ### 4. 세션 종료
 
@@ -1622,14 +1580,18 @@ git commit -m "feat: auto-chain hook"
 In `skills/drllm-adaptive-tutoring/SKILL.md`, ensure Protocol section contains explicit append commands. Add a dedicated section after Protocol:
 
 ```markdown
-## Event Recording — MUST DO
+## Event Recording — MUST DO (v2 Robust)
 
-매 turn 종료 전 다음을 확인:
+**Authoritative schema**: `context/drllm-core.md` §5.3 (이벤트 6종 포맷) + §6 (HARD STOPS).
 
-1. **[SUBTOPIC] 이벤트**: 새 subtopic 도입했으면 반드시 append
-2. **[SOURCE] 이벤트**: research-results.md citation 인용했으면 반드시 append
-3. **[P5_CHECK] 또는 [P5_SKIP]**: P5 발동했으면 평가 결과와 함께 append
-4. **[COMPLETE] 이벤트**: 세션 종료 시 집계와 함께 append
+매 turn 종료 전 다음을 확인하여 learning-log.md 에 append (append-only, §0-3 No silent drop):
+
+1. **[SUBTOPIC]**: 새 subtopic 도입 (키포인트 전환) 시
+2. **[SOURCE]**: research-results.md verified citation 인용 시
+3. **[P5_CHECK]**: P5 발동 + 사용자 답변 + score 평가 완료 시
+4. **[P5_SKIP]**: 사용자 응답이 skip 정규식 매치 또는 회피 의사 표명 시 (reason 필수)
+5. **[P5_MISSING]**: §3 P5.1 T1~T4 조건 중 하나 이상 참이었으나 P5 발동하지 않은 턴 — **반드시 기록**. triggers 필드에 매치된 T 열거.
+6. **[COMPLETE]**: 세션 종료 시 (집계: total_checks, correct, partial, skip, **missing**, duration_sec)
 
 파일 쓰기는 내부 tool(예: `edit_file` 또는 `write_file`)로 append-only.
 
@@ -1640,10 +1602,11 @@ In `skills/drllm-adaptive-tutoring/SKILL.md`, ensure Protocol section contains e
 [SOURCE] fetch::dev.mysql.com/doc/refman/8.0/en/innodb-buffer-pool.html | verified=true
 [P5_CHECK] Q="Buffer Pool을 한 문장으로" | A="MySQL이 디스크 대신 메모리에 데이터 페이지를 캐시" | score=correct
 [P5_SKIP] reason="user_requested_skip"
-[COMPLETE] total_checks=3 correct=2 partial=1 skip=0 duration_sec=1247
+[P5_MISSING] triggers=T1,T3 | reason="implementer failed to evaluate triggers"
+[COMPLETE] total_checks=3 correct=2 partial=1 skip=0 missing=0 duration_sec=1247
 ```
 
-Hard Gate: 이벤트 기록을 생략하면 측정 지표 무효 → 세션 자체가 M1 POC에서 제외됨.
+Hard Gate: 이벤트 기록 생략 → 측정 지표 무효 → 세션 M1 POC 제외 (§6-1).
 ```
 
 - [ ] **Step 2: Schema test 재확인 후 Commit**
@@ -1722,10 +1685,12 @@ total_checks=0
 correct=0
 partial=0
 skip=0
+missing=0
 total_sources=0
 verified_sources=0
 completed=0
 total_sessions=0
+invalid_sessions=0
 
 for session in "$SESSIONS_DIR"/*/; do
     [ -d "$session" ] || continue
@@ -1738,10 +1703,16 @@ for session in "$SESSIONS_DIR"/*/; do
         co=$(grep '^\[P5_CHECK\]' "$log" 2>/dev/null | grep -c 'score=correct' || true); co=${co:-0}
         pa=$(grep '^\[P5_CHECK\]' "$log" 2>/dev/null | grep -c 'score=partial' || true); pa=${pa:-0}
         sk=$(grep -c '^\[P5_SKIP\]' "$log" 2>/dev/null || true); sk=${sk:-0}
+        ms=$(grep -c '^\[P5_MISSING\]' "$log" 2>/dev/null || true); ms=${ms:-0}
         total_checks=$((total_checks + cc))
         correct=$((correct + co))
         partial=$((partial + pa))
         skip=$((skip + sk))
+        missing=$((missing + ms))
+        # Robust §0-3: [P5_MISSING] 발생 세션은 측정 무효 후보 (M1 POC 제외 권고)
+        if [ "$ms" -gt 0 ]; then
+            invalid_sessions=$((invalid_sessions + 1))
+        fi
     fi
 
     if [ -f "$meta" ]; then
@@ -1779,6 +1750,7 @@ cat <<EOF
 === DRLLM M1 POC Aggregate Metrics ===
 Sessions total:   $total_sessions
 Sessions done:    $completed
+Sessions invalid: $invalid_sessions (contain [P5_MISSING] — §0-3 측정 무효 후보)
 --------------------------------------
 P5 score:         $p5_score (필수 ≥ 0.700)
 URL verify:       $url_verify (필수 ≥ 0.950)
@@ -1788,6 +1760,7 @@ Complete ratio:   $complete_ratio (기록만)
 Detail:
   P5 checks:      $total_checks (correct=$correct partial=$partial)
   P5 skips:       $skip
+  P5 missing:     $missing (§6-1 위반 기록)
   Citations:      $total_sources (verified=$verified_sources)
 EOF
 ```
@@ -1967,6 +1940,7 @@ Create `tests/aggregation/expected-output.txt`:
 === DRLLM M1 POC Aggregate Metrics ===
 Sessions total:   3
 Sessions done:    2
+Sessions invalid: 0 (contain [P5_MISSING] — §0-3 측정 무효 후보)
 --------------------------------------
 P5 score:         0.929 (필수 ≥ 0.700)
 URL verify:       0.842 (필수 ≥ 0.950)
@@ -1976,8 +1950,14 @@ Complete ratio:   0.667 (기록만)
 Detail:
   P5 checks:      7 (correct=6 partial=1)
   P5 skips:       1
+  P5 missing:     0 (§6-1 위반 기록)
   Citations:      19 (verified=16)
 ```
+
+> **v2 Note**: 현재 fixture 3개 세션은 모두 `[P5_MISSING]` 없음 (happy-path).
+> Task 23 구현자는 **v0.5 (또는 M1 미달 postmortem 단계)** 에서 4번째 fixture session-D
+> (`[P5_MISSING] triggers=T1,T2` 1건 포함) 를 추가하여 `invalid_sessions=1` + `missing=1`
+> 경로가 expected-output에 반영되는지 검증할 것. v0.1 에서는 불필요.
 
 - [ ] **Step 5: test.sh 작성**
 
