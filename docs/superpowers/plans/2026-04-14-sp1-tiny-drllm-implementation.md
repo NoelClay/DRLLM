@@ -1485,11 +1485,17 @@ Create `tests/manual/smoke-step4.md`:
 
 ```bash
 cd /home/namykim/workspace/DRLLM
-gemini extensions link .
+gemini extensions uninstall DRLLM 2>/dev/null; gemini extensions link .
 rm -rf .drllm/sessions/
 ```
 
 ## Scenario: InnoDB Buffer Pool (hook 자동 체인)
+
+### 사전 검증 (Task 18 gate)
+
+Gemini 진입 후 먼저:
+- [ ] `/hooks` — AfterTool match `save_memory` hook 등록 확인
+- [ ] Hook `command` 필드가 **절대경로로 resolve** 되어 표시되는지 확인 (`${workspacePath}` 이 `/home/namykim/workspace/DRLLM` 으로 치환). 리터럴 문자열 그대로면 v0.37.1 템플릿 키 미스매치 → plan 재확인.
 
 ### 단일 명령으로 end-to-end
 
@@ -1512,6 +1518,7 @@ rm -rf .drllm/sessions/
 ## 실패 시
 
 - 자동 체인 안 됨: `/hooks` 로 등록 확인 → Task 18 재확인
+- `${workspacePath}` 리터럴 그대로 표시됨: Gemini CLI 템플릿 키 변경 가능성. 절대경로로 하드코딩하여 재시도 후 Task 18 plan 재조정.
 - 무한 루프: hook script의 stop_hook_active 체크 → Task 16
 - tailToolCallRequest 오류: JSON schema 재확인 → Task 16 hook output
 ```
