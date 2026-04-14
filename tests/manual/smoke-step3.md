@@ -54,7 +54,12 @@ rm -rf .drllm/sessions/  # 깨끗한 상태
 - [ ] 사용자로서 답변 제공 (예: "MySQL이 메모리에 데이터를 캐시하는 영역")
 - [ ] T1~T4 structural trigger 중 하나 이상 참 시 P5 체크 발동 확인
 - [ ] 답변 후 correct/partial 평가 표시
-- [ ] learning-log.md 확인 (이벤트 기록 여부 — Task 20 에서 explicit contract 추가될 예정)
+- [ ] `learning-log.md` 생성 + 이벤트 기록 확인 (Task 14 §3 계약):
+  ```bash
+  cat .drllm/sessions/*/learning-log.md
+  # frontmatter (topic/session_id/status) + [SUBTOPIC] / [SOURCE] / [P5_CHECK 또는 P5_MISSING] 이벤트 존재
+  ```
+  (Task 20 에서 기록 강제 규약 refinement 예정; 현재는 S4 SKILL.md §3 의 "반드시 append" 지시 기준 검증)
 
 ### 합격 조건
 
