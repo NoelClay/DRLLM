@@ -93,7 +93,71 @@ fetch 결과들을 결합하여 다음 JSON schema로 강제 응답 생성 (Gemi
 
 Gemini response_schema 실패 시 1회 재시도, 그래도 실패 시 에러 보고 및 종료.
 
-(나머지 §5~§9 는 Task 12 에서 확장)
+### 5. Layer 2 Call 2 — 교차 검증
+
+Call 1의 citations 배열과 fetch 결과 raw text를 함께 LLM에 전달하여 검증:
+
+**시스템 프롬프트**:
+
+> "각 citation에 대해 다음을 검증하라:
+> (a) `url` 이 fetch 결과의 source URL 목록에 등장하는가?
+> (b) `quote` 가 fetch 결과 본문에 exact substring으로 포함되는가? (공백/개행 normalize는 허용)
+> (a)와 (b) 모두 true면 `verified=true`, 하나라도 false면 `verified=false` + `reason` 필드 추가.
+> 같은 schema를 유지하되 `verified` (boolean) 필드를 각 citation에 추가하라."
+
+### 6. 후처리 — research-results.md 작성
+
+- `citations.verified=false` 인 항목 제거
+- `url_verify_total = Call 1의 전체 citations 수`
+- `url_verify_count = verified=true 인 수`
+- `url_verify_ratio = url_verify_count / url_verify_total` (소수점 3자리)
+
+**research-results.md 포맷**:
+
+````markdown
+---
+session_id: <session_id>
+generated_at: <ISO 8601 KST>
+subqueries_count: <N>
+citations_verified: <count>/<total>
+---
+
+## Summary
+<Call 1의 summary, 한국어>
+
+## Key Points
+- <Call 1의 key_points[0]>
+- <Call 1의 key_points[1]>
+...
+
+## Citations
+| # | URL | Quote | Source Type | Verified |
+|---|-----|-------|-------------|----------|
+| 1 | <url> | "<quote>" | <source_type> | ✅ |
+| 2 | <url> | "<quote>" | <source_type> | ❌ (제거됨) |
+````
+
+### 7. metadata.json 갱신
+
+````json
+{
+  ...
+  "url_verify_total": <N>,
+  "url_verify_count": <M>,
+  "url_verify_ratio": <M/N>,
+  "status": "tutor"
+}
+````
+
+### 8. 사용자에게 보고 (한국어)
+
+> "리서치 완료. 출처 검증 비율: <M>/<N> (<ratio>). 학습 대화 시작 준비 완료."
+
+### 9. Marker tool 호출
+
+`save_memory("__drllm_s2_done_<session_id>")` — hook이 감지하여 S4 체인.
+
+**Hard Gate**: `url_verify_ratio < 0.5` 인 경우 marker tool 호출 금지. research-results.md 에 "⚠️ 출처 검증률 낮음" 경고 + 사용자에게 S4 진입 계속 여부 질문.
 
 ## Hard Gate
 
