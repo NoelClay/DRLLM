@@ -1143,7 +1143,7 @@ learning-log.md append (§5.3 이벤트 schema 준수):
 1. learning-log.md append:
 
    ```
-   [COMPLETE] total_checks=<N> correct=<C> partial=<P> skip=<S> duration_sec=<D>
+   [COMPLETE] total_checks=<N> correct=<C> partial=<P> skip=<S> missing=<M> duration_sec=<D>
    ```
 
 2. metadata.json 갱신:
