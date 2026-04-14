@@ -148,25 +148,58 @@ gemini extensions uninstall DRLLM 2>/dev/null; gemini extensions link .
 
 ## 5. 관찰된 이슈 / v0.5 Refinement 후보
 
-M1 1차 smoke 에서 수집된 이슈 (v0.5 또는 Task 20+ 에서 해결 권고):
+M1 1차 smoke 에서 수집된 이슈:
 
-1. **Empty-A P5_CHECK invalidation**: S4 가 P5 prompt 발화 직후 `[P5_CHECK] Q=... A="" score=` 를 먼저 append → 사용자 skip → `[P5_SKIP]` 추가. 첫 P5_CHECK (empty A) 가 aggregate count 에 포함되어 total_checks 를 부풀림. **Task 22 aggregate-metrics.sh 에 `A="" 인 P5_CHECK 제외` rule 추가 권고**.
-2. **외부 MCP citation 인용 (Open Aware 등)**: S4 가 대화 중 "Open Aware 리서치 결과에 따르면" 처럼 research-results.md 에 없는 외부 MCP citation 인용 가능성. drllm-core v2 §4 "도구 호출 결과에서만 추출" 과 §6-4 "verified=false citation 인용 금지" 에 해당. **v0.5 에서 drllm-core §4 reinforcement + S4 Hard Gate 강화 권고**.
-3. **중복 SUBTOPIC 이벤트**: 같은 subtopic 이름이 재발동으로 `[SUBTOPIC]` 2회 기록. 자연스러운 graceful recovery 이지만 aggregate 에서 새 subtopic 수 오산 가능. **Task 20+ 에서 dedup rule 검토**.
-4. **Gemini CLI settings default auto-apply 안됨**: Enter 만으로 default 값 자동 적용 안 됨. `gemini extensions config` 명령으로 명시 설정 필수. 사용자 교육 / README 에 명시 필요.
-5. **Long shell command display truncation**: `cat <<EOF` 류 긴 shell 명령이 Gemini UI 에 truncated 표시. 실제 파일은 정상 작성. 단 debug 시 혼란 소지 — v0.5 에서는 `write_file` tool 사용 선호 권고.
+### 5.1 v2.1 Performance Fix — 적용 완료 (2026-04-14 session break)
+
+**Issue #1 — S4 turn 당 평균 5분 지연**:
+- 원인: 이벤트당 개별 `echo >> log` shell 호출 (턴당 3~5회) × Gemini CLI confirm round.
+- Fix: `drllm-core.md` **§0-8 Batch side effects** 신설 — heredoc/write_file 단일 호출 의무화. S4 SKILL.md §3.4 에 구체 예시 반영.
+
+**Issue #2 — 같은 응답 2번 반복**:
+- 원인: SKILL.md §3.4 "평가별 후속 처리" 의 literal template 문구 (`"맞아요. 그럼..."` 등) 가 LLM 에게 "pre-tool 응답 → tool → post-tool 응답 재출력" 패턴 유도.
+- Fix: `drllm-core.md` **§6-7 Hard Stop** 신설 — "한 turn 의 사용자 대면 응답은 정확히 한 번만". S4 §3.4 의 template 문구를 *톤 가이드* 로 약화.
+
+**Model routing 적용**:
+- 세션 default `gemini-3-pro` 권장 (instruction-following 품질 ↑ → Issue #2 간접 해소).
+- `/model gemini-3-pro` 또는 `~/.gemini/settings.json` 에 `"defaultModel": "gemini-3-pro"`.
+- Flash/Lite 에 자동 routing 은 Gemini CLI 내부 오케스트레이션에 위임 (현재 smoke 관찰: `gemini-2.5-flash-lite` 4 req + `gemini-3-flash-preview` 7 req).
+
+**재link 필수**: v2.1 적용 후 Gemini CLI 에서 반드시:
+```bash
+gemini extensions uninstall DRLLM 2>/dev/null
+gemini extensions link .
+```
+
+### 5.2 v0.5 Refinement 후보 (defer)
+
+1. **Empty-A P5_CHECK invalidation**: S4 가 P5 prompt 발화 직후 `[P5_CHECK] Q=... A="" score=` 를 먼저 append → 사용자 skip → `[P5_SKIP]` 추가. 첫 P5_CHECK (empty A) 가 aggregate count 에 포함되어 total_checks 를 부풀림. **Task 22 aggregate-metrics.sh 에 `A="" 인 P5_CHECK 제외` rule 추가 권고**. (v2.1 §6-7 batch append 로 자연 해소 기대 — M1 2차 smoke 에서 재확인 후 필요 시 rule 추가)
+2. **외부 MCP citation 인용 (Open Aware 등)**: S4 가 대화 중 "Open Aware 리서치 결과에 따르면" 처럼 research-results.md 에 없는 외부 MCP citation 인용 가능성. drllm-core §4 + §6-4 정책 강화 (+ BeforeToolSelection hook 으로 외부 MCP 차단) 필요. **v0.5 SP-2 범위**.
+3. **중복 SUBTOPIC 이벤트**: 같은 subtopic 이름이 재발동으로 `[SUBTOPIC]` 2회 기록. Task 20+ 에서 dedup rule 검토.
+4. **Gemini CLI settings default auto-apply 안됨**: Enter 만으로 default 값 자동 적용 안 됨. `gemini extensions config` 명령으로 명시 설정 필수. README 에 명시.
+5. **Long shell command display truncation**: `cat <<EOF` 류 긴 shell 명령이 Gemini UI 에 truncated 표시. 실제 파일은 정상 작성. v0.5 에서는 `write_file` tool 사용 선호.
+6. **Subagent 기반 재설계 (model routing B 옵션)**: skill → `.gemini/agents/*.md` 전환하여 skill 별 독립 model 지정 (S2 는 Flash, S0/S4 는 Pro/inherit). Gemini CLI 재귀 subagent 제한 + hook auto-chain 호환성 재검토 필요. **v0.5 SP-2 brainstorming 범위**.
 
 ---
 
 ## 6. 다음 세션 진입 순서
 
-1. 본 파일 Read
-2. `docs/superpowers/plans/2026-04-14-sp1-tiny-drllm-implementation.md` Task 16 섹션 Read
-3. Task 16 implementer subagent dispatch (reports convention 적용)
-4. → Task 17/18/19 순차 진행
-5. STEP 4 milestone commit (auto-chain hook)
-6. STEP 4 사용자 smoke (smoke-step4.md — `/drllm:launch` 1회로 S0→S2→S4 자동 체인 확인)
-7. STEP 5 (measurement) 진입
+1. 본 파일 Read (특히 §5.1 v2.1 Performance Fix 확인)
+2. **Gemini CLI 재link 필수** (drllm-core v2.1 반영):
+   ```bash
+   cd /home/namykim/workspace/DRLLM && git pull origin feat/sp1-tiny-drllm
+   gemini extensions uninstall DRLLM 2>/dev/null; gemini extensions link .
+   gemini extensions config DRLLM DRLLM_DOMAIN_PROFILE context/domains/born2beroot.md
+   gemini extensions config DRLLM DRLLM_RESEARCH_MAX_SUBQUERIES 4
+   ```
+3. 세션 모델 고정 (권장): `/model gemini-3-pro` (또는 settings.json `defaultModel`)
+4. (선택) smoke-step3 재실행으로 v2.1 효과 확인 — 예상 turn latency: 5분 → 1~2분, 응답 중복 제거
+5. `docs/superpowers/plans/2026-04-14-sp1-tiny-drllm-implementation.md` Task 16 섹션 Read
+6. Task 16 implementer subagent dispatch (reports convention 적용)
+7. → Task 17/18/19 순차 진행
+8. STEP 4 milestone commit (auto-chain hook)
+9. STEP 4 사용자 smoke (smoke-step4.md — `/drllm:launch` 1회로 S0→S2→S4 자동 체인 확인)
+10. STEP 5 (measurement) 진입
 
 ---
 

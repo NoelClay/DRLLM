@@ -100,21 +100,33 @@ P5 prompt 문자열 (§3 P5.2, 변형 금지):
 - **incorrect** — (a)와 (b) 모두 미충족
 - **skip** — 사용자 입력이 `^(?i)(넘어가|다음|pass|skip|나중에|됐어|건너뛰|그냥 계속)` 매치, 또는 명확한 회피 의사 (reason 필드에 사용자 문장 인용 기록)
 
-learning-log.md append (§5.3 이벤트 schema 준수):
+learning-log.md append (§5.3 이벤트 schema + §0-8 Batch side effects 준수):
+
+매 turn 종료 직전에 **단일 tool 호출** 로 이벤트 batch append.
+이벤트당 개별 `echo >> log` 금지 (turn latency 폭증).
 
 ```
+cat >> .drllm/sessions/<session_id>/learning-log.md <<'EOF'
+[SUBTOPIC] <이름> | <ISO 8601 KST>
+[SOURCE] fetch::<url> | verified=true
 [P5_CHECK] Q="<질문>" | A="<사용자 답변>" | score=<correct|partial|incorrect>
+EOF
+```
+
+또는 skip / missing 시 해당 이벤트만 포함:
+
+```
 [P5_SKIP] reason="<사용자 문장 인용>"
 [P5_MISSING] triggers=T1,T3 | reason="<왜 발동 안 했는지>"
 ```
 
-평가별 후속 처리 (P3 Adapt to the Learner):
+평가별 후속 처리 (**톤 가이드** — §6-7 에 따라 literal 응답 이중 출력 금지. 아래 문구를 그대로 쓰지 말고 자연스러운 한국어 응답 **한 번** 에 녹여 넣는다):
 
-- correct → "맞아요. 그럼 다음 subtopic으로..."
-- partial → "거의 맞아요. 다만 <구체적 수정>..."
-- incorrect → "한 번 더 설명할게요. <재설명>" (재설명 후 재체크)
-- skip → 학습 계속, `[P5_SKIP]` 기록
-- missing (구현자가 발동 실패) → 직전 턴 응답 종료 직전에 `[P5_MISSING]` append + 이번 턴에서 즉시 P5 재발동 시도
+- correct → 긍정 확인 + 다음 subtopic 으로 전환 제안
+- partial → 부분 인정 + 구체적 수정 또는 추가 설명
+- incorrect → 재설명 후 재체크
+- skip → `[P5_SKIP]` 기록 후 다음 주제로 자연 전환
+- missing (구현자가 발동 실패) → 이벤트 append 에 `[P5_MISSING]` 포함 + 다음 turn 에서 P5 재발동
 
 ### 4. 세션 종료
 

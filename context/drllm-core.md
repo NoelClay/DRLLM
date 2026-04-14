@@ -1,11 +1,11 @@
-# DRLLM Core — 학습 튜터 공통 가이드 (v2: Robust)
+# DRLLM Core — 학습 튜터 공통 가이드 (v2.1: Robust + Performance)
 
 이 문서는 DRLLM 모든 스킬(S0/S2/S4)이 공통으로 따르는 원칙을 정의한다.
 모든 스킬은 본 문서를 먼저 import 한 뒤 자체 규칙을 덧붙인다.
 
-## 0. Robust Design Principles — 실수 연발 방지 구조
+## 0. Robust Design Principles — 실수 연발 방지 + 성능 원칙
 
-후속 스킬(S0/S2/S4) 및 hook은 이 7 원칙을 기계적으로 준수한다. 판단 회피를 통한 loophole 생성 금지.
+후속 스킬(S0/S2/S4) 및 hook은 이 8 원칙을 기계적으로 준수한다. 판단 회피를 통한 loophole 생성 금지.
 
 1. **LLM 판단 최소화**: "subtopic 끝났다고 판단", "중요해 보이는 경우" 등의 주관 기준은 금지.
    대신 파일 존재·숫자 비교·regex match·카운터 등 결정적(decidable) 조건으로 치환.
@@ -15,6 +15,23 @@
 5. **Fail loud**: 모호한 상황에서는 "출처 확인 필요" 표시 후 즉시 중단. 추측 답변 생성 금지. 사용자에게 명시 보고.
 6. **Explicit state transitions**: 세션 status 전이(`research → tutor → done` 등)는 metadata.json 의 `status` 필드 명시 갱신을 통해서만 일어난다. 암묵 전이 금지.
 7. **Contracts in drllm-core.md**: 스킬 간 공유 불변식(session_id 발견, 파일 경로, 이벤트 포맷 등)은 반드시 본 문서에 명시. 스킬 SKILL.md 에 중복 정의 금지(본 문서 참조만).
+8. **Batch side effects** (v2.1): learning-log.md / metadata.json 갱신은 매 turn 종료 직전 **단일 tool 호출** 로 한 번에 처리한다. 이벤트당 별도 `echo "[XXX] ..." >> log` 개별 shell 호출 **금지** — Gemini CLI confirm round 누적으로 turn latency 가 수 분으로 커짐.
+
+   **나쁜 예** (이벤트당 개별 shell):
+   ```
+   echo "[SUBTOPIC] ..." >> log
+   echo "[SOURCE] ..." >> log
+   echo "[P5_CHECK] ..." >> log
+   ```
+
+   **좋은 예** (heredoc 1회 또는 `write_file`):
+   ```
+   cat >> log <<'EOF'
+   [SUBTOPIC] ...
+   [SOURCE] ...
+   [P5_CHECK] ...
+   EOF
+   ```
 
 ## 1. Universal File Resolution Protocol
 
@@ -196,6 +213,11 @@ status: in_progress
 4. `verified=false` citation을 S4 대화에서 인용 금지. research-results.md 의 Citations 표에서도 "❌ (제거됨)" 표시 후 내용 제외.
 5. 확실하지 않은 정보 → "출처 확인 필요" 명시 후 중단. 추측 답변 금지(§0-5).
 6. 세션 status 전이는 metadata.json 갱신을 통해서만. 암묵 전이 또는 skill 간 불일치 감지 시 에러(§0-6).
+7. **한 turn 의 사용자 대면 응답은 정확히 한 번만 출력** (v2.1). tool 호출 전 "pre-tool 응답" 과 tool 완료 후 "post-tool 응답" 모두 생성하는 중복 금지. 절차:
+   (a) 내부 평가·판단 완료,
+   (b) 이벤트 batch append (§0-8) 수행,
+   (c) tool 완료 후 **단일 사용자 응답** 1회 생성.
+   §3 P5 평가별 후속 처리 문구는 *톤 가이드* 로만 참고하고, 사용자 응답 안에 녹여 넣는다 — 별도 preamble 로 뽑아 쓰지 말 것.
 
 ## 7. 재실행·복구 원칙
 
