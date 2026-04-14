@@ -24,7 +24,7 @@ S2의 리서치 결과를 바탕으로 사용자와 한국어 학습 대화를 �
    - 첫 응답: research 결과 기반 개념 소개
    - 새로운 subtopic 시작 시 `[SUBTOPIC]` 이벤트 기록
    - subtopic 완료 감지 시 (LLM 판단) → **P5 체크 강제**:
-     "한 문장으로 [X]를 설명해줄 수 있어?"
+     "한 문장으로 [X]를 설명해줄 수 있어? 동료를 가르치듯."
    - 사용자 답변 평가 (correct/partial/incorrect/skip)
    - `[P5_CHECK]` 또는 `[P5_SKIP]` 이벤트 기록
 5. **세션 종료** (사용자 종료 요청 또는 자연스러운 완료):
@@ -34,9 +34,8 @@ S2의 리서치 결과를 바탕으로 사용자와 한국어 학습 대화를 �
 ## Hard Gate
 
 - status != "tutor" → 에러 반환
-- research-results.md 부재 → 에러 반환 (S2 재실행 안내)
 - P5 체크 생략 절대 금지 (subtopic 완료 감지 시 반드시 발동)
-- verified=false citation 인용 → **절대 금지**
+- 출처 없는 주장 금지 — research-results.md의 citations만 참조
 
 ## Outputs
 
