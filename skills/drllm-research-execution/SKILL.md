@@ -14,17 +14,44 @@ S0가 생성한 세션 메타를 읽고, 주제를 서브쿼리로 분해, fetch
 - `.drllm/sessions/<session_id>/metadata.json` (S0 산출물)
 - 환경 변수 `DRLLM_DOMAIN_PROFILE`, `DRLLM_RESEARCH_MAX_SUBQUERIES`
 
-## Protocol (상세는 Task 10~12에서 확장)
+## Protocol
 
-1. metadata.json 로드, status=="research" 확인
-2. domain profile 로드 (우선 참조 URL 힌트 확보)
-3. **인라인 쿼리 분해** (LLM 1회 호출): 주제 → 2~4 서브쿼리
-4. **fetch MCP 병렬 호출** (서브쿼리별)
-5. **Layer 2 Call 1**: fetch 결과 → JSON schema 강제 응답 (summary + key_points + citations)
-6. **Layer 2 Call 2**: citations 교차 검증 (exact substring match) → verified 필드 부착
-7. verified=false citation 제거 후 `research-results.md` 작성
-8. metadata.json 갱신: `url_verify_total`, `url_verify_count`, `url_verify_ratio`, `status="tutor"`
-9. Marker tool 호출: `save_memory("__drllm_s2_done_<session_id>")`
+### 1. 세션 로드
+
+- `session_id`는 호출 컨텍스트에서 주어진 값, 없으면 `.drllm/sessions/` 에서 `status=="research"` 인 가장 최근 항목 선택
+- `metadata.json` 로드. `status != "research"` 면 에러 ("S2는 research 상태 세션만 실행")
+- `domain` 필드로 `context/domains/<domain>.md` 로드
+
+### 2. 인라인 쿼리 분해 (LLM 호출 1회)
+
+주제를 2~4개 서브쿼리로 분해한다. 규칙:
+
+- 각 서브쿼리는 단일 정답을 가진 구체 질문 (예: "InnoDB Buffer Pool의 정의", "innodb_buffer_pool_size 기본값", "128MiB가 기본값이 된 역사적 이유")
+- 메타 질문 금지 ("X는 무엇인가?"는 OK, "X의 모든 것"은 금지)
+- 도메인 프로파일의 우선 참조 URL을 힌트로 활용
+- 최대 개수: `DRLLM_RESEARCH_MAX_SUBQUERIES` (default 4)
+
+**출력 형식** (내부 JSON, 사용자에게는 표시 안 함):
+
+```json
+{
+  "subqueries": [
+    { "query": "...", "hint_url": "...", "source_type_expected": "official_docs" }
+  ]
+}
+```
+
+### 3. fetch MCP 병렬 호출
+
+각 서브쿼리마다 fetch MCP를 호출한다:
+
+- `hint_url` 이 있으면 먼저 그 URL을 fetch
+- `hint_url` 이 없거나 응답이 빈 경우: web 검색(google_web_search)을 hint_url 생성용으로 사용 후 top-3 fetch
+- fetch 결과는 raw text로 보존 (LLM 해석 전에 저장)
+- 실패한 서브쿼리는 대안 쿼리로 1회 재시도 후 실패 기록
+- 모든 서브쿼리 실패 → `status="research_failed"` 후 종료
+
+(나머지 섹션 4~9는 Task 11~12에서 확장)
 
 ## Hard Gate
 
