@@ -15,5 +15,13 @@
       "default": "4"
     }
   ],
-  "mcpServers": {}
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {
+        "DEFAULT_USER_AGENT_AUTONOMOUS": "DRLLM/0.1 (+https://github.com/namykim/DRLLM)"
+      }
+    }
+  }
 }
