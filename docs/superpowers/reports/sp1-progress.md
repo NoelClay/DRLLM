@@ -1,11 +1,12 @@
 # SP-1 Progress & Session Resume Guide
 
 **Branch**: `feat/sp1-tiny-drllm`
-**Last updated**: 2026-04-14 (STEP 4 code-complete)
+**Last updated**: 2026-04-15 (STEP 4 smoke PASS + bugs filed)
 **Completed**: 19 / 28 Tasks (68%)
-**M1 micro-POC 1차**: ✅ PASS
-**STEP 4 smoke**: ⏳ pending user run (smoke-step4.md)
-**Next**: STEP 5 (Task 20~24) — Measurement
+**M1 micro-POC 1차**: ✅ PASS (2026-04-14)
+**STEP 4 smoke (chain-only)**: ✅ PASS (2026-04-15) — S0→S2→S4 자동 체인 검증 완료
+**Bugs filed**: B1 / B2 / B3 (see `docs/superpowers/bugs/`)
+**Next**: STEP 5 (Task 20~24) — Measurement + B1/B2 fix 통합
 
 ---
 
@@ -101,7 +102,14 @@ Claude Code 세션에서:
 - hook 5 시나리오 검증 완료 (S0→S2 chain / S2→S4 chain / stop_hook_active guard / 관련 없는 tool / save_memory 비-marker)
 - 코드 리뷰 4건 모두 APPROVED (최종 2건은 APPROVED WITH CONCERNS — 모두 plan-level 또는 live smoke 로 검증 예정 항목)
 
-**STEP 4 smoke 대기 중**: `tests/manual/smoke-step4.md` — 사용자 interactive Gemini CLI 로 `/drllm:launch` 1회 실행, S0→S2→S4 자동 체인 관찰 필요.
+**STEP 4 smoke 결과** (2026-04-15, chain-only, InnoDB Buffer Pool 주제):
+- `/drllm:launch` 1회 실행으로 S0→S2→S4 자동 체인 ✅
+- 사용자 개입 없이 `save_memory` marker 감지 후 hook tailToolCallRequest 로 다음 skill 활성화 2회 성공
+- Session artifacts: `metadata.json` (status=tutor, url_verify_ratio=1.0) + `research-results.md` + `learning-log.md` 모두 생성
+- **발견된 3 bugs (B1/B2/B3)** — STEP 5 에서 fix 통합:
+  - B1: citations count ≠ metadata url_verify_total (Task 21 scope)
+  - B2: timestamp hallucination (Task 20 + drllm-core scope)
+  - B3: S2 GoogleSearch drift (v0.1 부분 fix + SP-2 allowlist)
 
 ---
 
