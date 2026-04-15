@@ -140,24 +140,29 @@ citations_verified: <count>/<total>
 | # | URL | Quote | Source Type | Verified |
 |---|-----|-------|-------------|----------|
 | 1 | <url> | "<quote>" | <source_type> | ✅ |
-| 2 | <url> | "<quote>" | <source_type> | ❌ (제거됨) |
 ````
+
+> verified=false 인 citation 은 테이블에 포함하지 않음 (§6 line 110 규칙).
 
 ### 6.1 Citations 테이블 무결성 (v2.2 B1 fix)
 
 **규칙**:
 - Call 2 에서 `verified=true` 로 판정된 citation 은 빠짐없이 Citations 테이블에 **각각 별도 row** 로 기재.
 - 유사 URL (같은 base URL + 다른 `#fragment` 또는 `?query`) 은 **별도 row 로 유지**. 병합 금지.
-- Citations 테이블 row 수 = `url_verify_total` 이어야 함. 불일치 시 self-check 에서 감지하여 §6 HARD STOP-9 에 따라 `status="research_failed"` 전이.
+- Citations 테이블 row 수 = `url_verify_count` (verified-only 테이블, §6 규칙) 이어야 함. 불일치 시 self-check 에서 감지하여 §6 HARD STOP-9 에 따라 `status="research_failed"` 전이.
 
 **Self-check (종료 직전)**:
 
     ROW_COUNT=$(grep -c '^| [0-9]' .drllm/sessions/<id>/research-results.md)
-    TOTAL=$(jq -r .url_verify_total .drllm/sessions/<id>/metadata.json)
-    if [ "$ROW_COUNT" != "$TOTAL" ]; then
+    COUNT=$(jq -r .url_verify_count .drllm/sessions/<id>/metadata.json)
+    if [ -z "$COUNT" ] || [ "$COUNT" = "null" ]; then
+      echo >&2 "[S2] HARD STOP-9: url_verify_count field missing in metadata.json"
+      exit 1
+    fi
+    if [ "$ROW_COUNT" != "$COUNT" ]; then
       # HARD STOP-9 위반
       jq '.status = "research_failed"' metadata.json > /tmp/m.$$ && mv /tmp/m.$$ metadata.json
-      echo >&2 "[S2] Citations count mismatch: table=$ROW_COUNT meta=$TOTAL"
+      echo >&2 "[S2] HARD STOP-9: Citations count mismatch — table=$ROW_COUNT meta.url_verify_count=$COUNT"
       exit 1
     fi
 

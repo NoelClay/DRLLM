@@ -52,6 +52,8 @@ Layer 2 Call 2 의 JSON 스키마 산출물에서:
 - L3 aggregation (Task 22) 에서 검증: `jq '.url_verify_total' metadata.json` 과 `grep -c '^|' research-results.md Citations section` 가 불일치하면 `[INVALID_CITATION_COUNT]` 이벤트 기록
 - drllm-core.md §6 HARD STOPS 에 "metadata.url_verify_total 은 Citations 테이블 row 수와 일치" 규칙 추가
 
+**Updated during Task 21 review (C1+I1 fix)**: compare vs `url_verify_count` (verified-only table), not `url_verify_total`. Citations 테이블은 §6 line 110 규칙에 의해 verified=true 항목만 포함하므로, self-check 기준을 `url_verify_total` (전체) → `url_verify_count` (검증 통과만) 로 수정. See commit fixing C1.
+
 ## Verification
 
 Fix 후:
