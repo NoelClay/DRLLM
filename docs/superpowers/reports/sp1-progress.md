@@ -219,33 +219,57 @@ gemini extensions link .
 
 ---
 
-## 6. 다음 세션 진입 순서
+## 6. 다음 세션 진입 순서 (STEP 5 smoke → STEP 6 M1 POC)
 
-1. 본 파일 Read (특히 §5.1 v2.1 Performance Fix + §2 STEP 4 결과 확인)
-2. **Gemini CLI 재link + hook 등록** (STEP 4 `.gemini/settings.json` 반영):
+### Pre-flight (세션 시작 시 매번)
+
+1. 본 파일 Read (특히 §2 STEP 5 결과 + §5.2 v0.5 refinement + `docs/superpowers/bugs/` 4 버그 상태)
+2. **Gemini CLI 재link** (drllm-core v2.2 + S0/S2/S4 shell timestamp 반영):
    ```bash
    cd /home/namykim/workspace/DRLLM && git pull origin feat/sp1-tiny-drllm
    gemini extensions uninstall DRLLM 2>/dev/null; gemini extensions link .
-   gemini extensions config DRLLM DRLLM_DOMAIN_PROFILE context/domains/born2beroot.md
-   gemini extensions config DRLLM DRLLM_RESEARCH_MAX_SUBQUERIES 4
+   # Gemini 가 DRLLM_DOMAIN_PROFILE / DRLLM_RESEARCH_MAX_SUBQUERIES 프롬프트:
+   #   context/domains/born2beroot.md
+   #   4
    ```
-3. 세션 모델 고정 (권장): `/model gemini-3-pro`
-4. **STEP 4 smoke 실행** (`tests/manual/smoke-step4.md`):
-   - `/hooks` 로 AfterTool save_memory hook 등록 + `${workspacePath}` 절대경로 resolve 확인
-   - `/drllm:launch "InnoDB Buffer Pool 왜 128MiB?"` 1회로 S0→S2→S4 자동 체인 관찰
-   - stderr 에서 `[drllm-hook] S0 done detected` / `S2 done detected` 로그 2줄 확인
-   - 합격 조건 4개 검증 (smoke-step4.md 참조)
-5. smoke 합격 → Task 20 (STEP 5 Measurement) 진입
-6. smoke 실패 → smoke-step4.md 실패 시 섹션 diagnostic path 확인 + `${workspacePath}` 템플릿 키 이슈면 `.gemini/settings.json` 을 절대경로로 교체 (Task 18 plan 재조정)
-7. (이하 STEP 5~7 진행은 plan.md 참조)
+3. 세션 모델 고정: `/model gemini-3-pro`
+4. 자동 테스트 확인: `./tools/run-tests.sh` → L1 + L2 + L3 모두 PASS
+
+### STEP 5 smoke (optional, ~15분)
+
+- `tests/manual/smoke-step5.md` 실행 (사용자 학습 세션)
+- 합격 조건: learning-log 6 이벤트 타입 + metadata url_verify 필드 + aggregate 에러 없이 실행
+- **생략 가능**: STEP 6 M1 POC Scenario 1 이 실질적으로 STEP 5 smoke 를 포함 → 노가다 합체 옵션
+
+### STEP 6 M1 POC 3 시나리오 (~1시간, 세션 연속 수행 권장)
+
+5. **Scenario 1 — InnoDB Buffer Pool 왜 128MiB?** (재실행, v2.2 measurement contract 검증)
+6. **Scenario 2 — PHP `memory_limit` 128M 이유?** (Born2beRoot 관점)
+7. **Scenario 3 — Debian partition 구성 (LVM 등)?**
+
+각 시나리오 중간에 break 시 다음 세션에서 나머지 이어서 진행 가능 (`.drllm/sessions/` 에 세션별 디렉토리 분리).
+
+### STEP 7 판정 (Task 28)
+
+8. `./tools/aggregate-metrics.sh` 실행 → P5 score + URL verify 확인
+9. `docs/superpowers/reports/m1-poc-results.md` 작성 (각 세션 인용 + 지표 + 실패/성공 요인)
+10. **합격 조건**: P5 score ≥ 0.70 AND URL verify ≥ 0.95 AND `[INVALID_*]` 카운터 모두 0
+11. 합격 → `v0.1-ga` tag + SP-2 brainstorming 진입
+12. 미달 → `m1-postmortem.md` + 조치 결정 (Layer 3a urlhealth 조기 도입 등)
 
 ---
 
 ## 7. 핵심 파일 참조
 
 - **Spec**: `docs/superpowers/specs/2026-04-14-sp1-tiny-drllm-design.md`
-- **Plan**: `docs/superpowers/plans/2026-04-14-sp1-tiny-drllm-implementation.md` (2400+ lines)
-- **Authoritative contract**: `context/drllm-core.md` v2 Robust (§0 Design Principles)
+- **Plan**: `docs/superpowers/plans/2026-04-14-sp1-tiny-drllm-implementation.md` (2400+ lines, Task 17/19/21 plan-sync 포함)
+- **Authoritative contract**: `context/drllm-core.md` **v2.2** (§0 Design Principles + §1.2 Timestamp Protocol + §6 HARD STOPS 1-10)
 - **SP-0 Final Report**: `docs/superpowers/research/2026-04-12-sp0-final-report.md`
-- **Session archive** (M1 1차): `.drllm/sessions/20260414-innodb-buffer-pool-default-size/`
-- **Task review archive**: `docs/superpowers/reports/task-{01..15}/`
+- **Bug tracker**: `docs/superpowers/bugs/` (B1/B2/B3 in_progress, B4 open)
+- **Aggregate script**: `tools/aggregate-metrics.sh` (B1/B2/B3 detection 통합)
+- **L3 test**: `tests/aggregation/test.sh` (happy-path 3 fixtures)
+- **Manual smoke**: `tests/manual/smoke-step{2,3,4,5}.md`
+- **Session archives**:
+  - M1 1차 (2026-04-14): `.drllm/sessions/20260414-innodb-buffer-pool-default-size/`
+  - STEP 4 chain smoke (2026-04-15): `.drllm/sessions/20260415-innodb-buffer-pool-default-size/`
+- **Task review archive**: `docs/superpowers/reports/task-{01..24}/` (24개 task 완료 기준)
