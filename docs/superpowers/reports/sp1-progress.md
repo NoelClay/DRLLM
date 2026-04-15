@@ -1,12 +1,14 @@
 # SP-1 Progress & Session Resume Guide
 
 **Branch**: `feat/sp1-tiny-drllm`
-**Last updated**: 2026-04-15 (STEP 4 smoke PASS + bugs filed)
-**Completed**: 19 / 28 Tasks (68%)
+**Last updated**: 2026-04-15 (STEP 5 code-complete)
+**Completed**: 24 / 28 Tasks (86%)
 **M1 micro-POC 1차**: ✅ PASS (2026-04-14)
-**STEP 4 smoke (chain-only)**: ✅ PASS (2026-04-15) — S0→S2→S4 자동 체인 검증 완료
-**Bugs filed**: B1 / B2 / B3 (see `docs/superpowers/bugs/`)
-**Next**: STEP 5 (Task 20~24) — Measurement + B1/B2 fix 통합
+**STEP 4 smoke (chain-only)**: ✅ PASS (2026-04-15)
+**STEP 5 code**: ✅ complete — drllm-core v2.2 + aggregate-metrics.sh + L3 fixtures/test + bug fixes B1/B2/B3 통합
+**Bugs**: B1/B2/B3 in_progress (v0.5 SP-2 에서 closure), B4 open (SP-2 negative fixtures)
+**STEP 5 smoke**: ⏳ pending user run (`tests/manual/smoke-step5.md`)
+**Next**: STEP 6 (Task 25~27) — M1 POC 3 시나리오 실행
 
 ---
 
@@ -106,10 +108,29 @@ Claude Code 세션에서:
 - `/drllm:launch` 1회 실행으로 S0→S2→S4 자동 체인 ✅
 - 사용자 개입 없이 `save_memory` marker 감지 후 hook tailToolCallRequest 로 다음 skill 활성화 2회 성공
 - Session artifacts: `metadata.json` (status=tutor, url_verify_ratio=1.0) + `research-results.md` + `learning-log.md` 모두 생성
-- **발견된 3 bugs (B1/B2/B3)** — STEP 5 에서 fix 통합:
-  - B1: citations count ≠ metadata url_verify_total (Task 21 scope)
-  - B2: timestamp hallucination (Task 20 + drllm-core scope)
-  - B3: S2 GoogleSearch drift (v0.1 부분 fix + SP-2 allowlist)
+- **발견된 3 bugs (B1/B2/B3)** — STEP 5 에서 fix 통합 완료 (아래 STEP 5 참조)
+
+### STEP 5 (Task 20~24) — Measurement + B1/B2/B3 통합 fix
+
+| Task | 산출물 | Commit(s) |
+|------|--------|-----------|
+| 20 | drllm-core §1.2 Timestamp Protocol + §6-8 HARD STOP + S0/S2/S4 shell timestamp | `cf78ede` + `ced0984` (C1+I1 fix) |
+| 21 | S2 §7 url_verify contract + §6.1 Citations row count + drllm-core §6-9 | `bc181b5` + `b560a07` (C1+I1 fix) + `589b23e` (report) |
+| 22 | `tools/aggregate-metrics.sh` + B1/B2 detection + 3-counter invalid block | `4f56b40` + `79932c7` (I1/I5/I3 fix) |
+| 23 | L3 fixtures (3 sessions) + `tests/aggregation/test.sh` | `a55112b` + `4b650bd` (I1+I2 fix) |
+| 24 | smoke-step5.md + drllm-core §6-10 B3 HARD STOP + S2 §3.1 fetch-only | `c832d78` + `a7812f6` (I-1+I-3 fix) |
+| — | B4 coverage-gap bug + STEP 5 reports archive | `d0884f3` + `a635891` |
+
+**STEP 5 milestone** (Commit Point 5): `c832d78 feat(sp1): Task 24 + B3 v0.1 fix`
+
+**STEP 5 code 결과**:
+- drllm-core v2.2 (§1.2 Timestamp Protocol + HARD STOPS 8/9/10 신설)
+- aggregate-metrics.sh 작동 중 (실세션 2개에 대해 `[INVALID_TIMESTAMP]` 정확히 감지 확인 — B2 fix 가 통한 증거)
+- L3 자동 테스트 활성화 (happy-path 3 fixtures, 합계 P5 score=0.929 / URL verify=0.842 시연)
+- 총 12 commits + 10 review report archives
+- Review loop 에서 Critical 1건 (Task 20 heredoc command injection), Important 7건 발견 — 전부 fix 후 APPROVED
+
+**STEP 5 smoke 대기**: `tests/manual/smoke-step5.md` — 사용자 interactive Gemini CLI 로 end-to-end 측정 로직 검증 필요.
 
 ---
 
