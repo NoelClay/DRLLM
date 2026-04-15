@@ -114,10 +114,16 @@ Call 1의 citations 배열과 fetch 결과 raw text를 함께 LLM에 전달하�
 
 **research-results.md 포맷**:
 
+`generated_at` 은 LLM 직접 생성 금지 — shell 호출로 획득 (§1.2 Timestamp Acquisition Protocol, §6-8):
+
+````bash
+NOW=$(date -Iseconds)
+````
+
 ````markdown
 ---
 session_id: <session_id>
-generated_at: <ISO 8601 KST>
+generated_at: ${NOW}
 subqueries_count: <N>
 citations_verified: <count>/<total>
 ---

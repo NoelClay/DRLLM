@@ -100,14 +100,16 @@ P5 prompt 문자열 (§3 P5.2, 변형 금지):
 - **incorrect** — (a)와 (b) 모두 미충족
 - **skip** — 사용자 입력이 `^(?i)(넘어가|다음|pass|skip|나중에|됐어|건너뛰|그냥 계속)` 매치, 또는 명확한 회피 의사 (reason 필드에 사용자 문장 인용 기록)
 
-learning-log.md append (§5.3 이벤트 schema + §0-8 Batch side effects 준수):
+learning-log.md append (§5.3 이벤트 schema + §0-8 Batch side effects + §1.2 Timestamp Acquisition Protocol 준수):
 
 매 turn 종료 직전에 **단일 tool 호출** 로 이벤트 batch append.
 이벤트당 개별 `echo >> log` 금지 (turn latency 폭증).
+timestamp 는 LLM 직접 생성 금지 — `NOW=$(date -Iseconds)` 로 한 번 capture 후 모든 이벤트에 주입 (§6-8):
 
-```
-cat >> .drllm/sessions/<session_id>/learning-log.md <<'EOF'
-[SUBTOPIC] <이름> | <ISO 8601 KST>
+```bash
+NOW=$(date -Iseconds)
+cat >> .drllm/sessions/<session_id>/learning-log.md <<EOF
+[SUBTOPIC] <이름> | ${NOW}
 [SOURCE] fetch::<url> | verified=true
 [P5_CHECK] Q="<질문>" | A="<사용자 답변>" | score=<correct|partial|incorrect>
 EOF
@@ -138,17 +140,32 @@ EOF
 
 종료 절차:
 
-1. learning-log.md append (drllm-core §5.3 [COMPLETE] 이벤트 schema 그대로 — missing 필드 포함):
+1. `completed_at` 과 `duration_sec` 은 shell 호출로 획득 (§1.2, §6-8). LLM 직접 생성 금지:
 
-   ```
-   [COMPLETE] total_checks=<N> correct=<C> partial=<P> skip=<S> missing=<M> duration_sec=<D>
+   ```bash
+   NOW=$(date -Iseconds)
+   START_EPOCH=$(date -d "$(jq -r .started_at ".drllm/sessions/${session_id}/metadata.json")" +%s)
+   END_EPOCH=$(date +%s)
+   DURATION=$((END_EPOCH - START_EPOCH))
    ```
 
-2. metadata.json 갱신:
+2. learning-log.md append (drllm-core §5.3 [COMPLETE] 이벤트 schema 그대로 — missing 필드 포함):
+
+   ```bash
+   cat >> ".drllm/sessions/${session_id}/learning-log.md" <<EOF
+   [COMPLETE] total_checks=<N> correct=<C> partial=<P> skip=<S> missing=<M> duration_sec=${DURATION}
+   EOF
+   ```
+
+3. metadata.json 갱신:
+
+   ```bash
+   # NOW, DURATION already captured above
+   ```
 
    ```json
    {
-     "completed_at": "<ISO 8601 KST>",
+     "completed_at": "${NOW}",
      "status": "done"
    }
    ```
@@ -156,6 +173,32 @@ EOF
 3. 사용자에게 요약 (한국어):
 
    > "학습 완료. 인출 체크 <N>회 중 <C> correct + <P> partial. 수고하셨어요."
+
+## Event Recording — MUST DO (v2 Robust)
+
+**Authoritative schema**: `context/drllm-core.md` §5.3 (이벤트 6종 포맷) + §6 (HARD STOPS).
+
+매 turn 종료 전 다음을 확인하여 learning-log.md 에 append (append-only, §0-3 No silent drop):
+
+1. **[SUBTOPIC]**: 새 subtopic 도입 (키포인트 전환) 시
+2. **[SOURCE]**: research-results.md verified citation 인용 시
+3. **[P5_CHECK]**: P5 발동 + 사용자 답변 + score 평가 완료 시
+4. **[P5_SKIP]**: 사용자 응답이 skip 정규식 매치 또는 회피 의사 표명 시 (reason 필수)
+5. **[P5_MISSING]**: §3 P5.1 T1~T4 조건 중 하나 이상 참이었으나 P5 발동하지 않은 턴 — **반드시 기록**. triggers 필드에 매치된 T 열거.
+6. **[COMPLETE]**: 세션 종료 시 (집계: total_checks, correct, partial, skip, **missing**, duration_sec)
+
+파일 쓰기는 내부 tool(예: `edit_file` 또는 `write_file`)로 append-only.
+
+**형식 예시**:
+
+    [SUBTOPIC] Buffer Pool 정의 | 2026-04-14T10:31:00+09:00
+    [SOURCE] fetch::dev.mysql.com/doc/refman/8.0/en/innodb-buffer-pool.html | verified=true
+    [P5_CHECK] Q="Buffer Pool을 한 문장으로" | A="MySQL이 디스크 대신 메모리에 데이터 페이지를 캐시" | score=correct
+    [P5_SKIP] reason="user_requested_skip"
+    [P5_MISSING] triggers=T1,T3 | reason="implementer failed to evaluate triggers"
+    [COMPLETE] total_checks=3 correct=2 partial=1 skip=0 missing=0 duration_sec=1247
+
+Hard Gate: 이벤트 기록 생략 → 측정 지표 무효 → 세션 M1 POC 제외 (§6-1).
 
 ## Hard Gate
 

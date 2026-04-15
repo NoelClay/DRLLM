@@ -58,6 +58,40 @@
 
 `.drllm/sessions/LATEST` 파일 포맷: 텍스트 한 줄, 개행 없음. 예: `20260414-innodb-buffer-pool-default-size`.
 
+### 1.2 Timestamp Acquisition Protocol (v2.2 B2 fix)
+
+모든 timestamp 필드는 **LLM 이 직접 생성 금지**. 반드시 shell 호출로 획득:
+
+```bash
+NOW=$(date -Iseconds)   # 예: 2026-04-15T11:40:23+09:00
+```
+
+적용 대상 (exhaustive):
+- `metadata.json`: `started_at`, `completed_at`
+- `research-results.md` frontmatter: `generated_at`
+- `learning-log.md` frontmatter: `started_at` (S0 metadata 에서 복사), `completed_at`
+- `[SUBTOPIC]`, `[SOURCE]`, `[P5_CHECK]`, `[P5_SKIP]`, `[P5_MISSING]` 이벤트 tail 의 ISO 8601 KST 필드
+
+구현 패턴 (v2.1 §0-8 Batch side effects 호환):
+
+```bash
+NOW=$(date -Iseconds)
+cat >> .drllm/sessions/<id>/learning-log.md <<EOF
+[SUBTOPIC] <이름> | ${NOW}
+[SOURCE] fetch::<url> | verified=true
+[P5_CHECK] Q="<질문>" | A="<답변>" | score=correct
+EOF
+```
+
+`duration_sec` 계산:
+```bash
+START_EPOCH=$(date -d "$(jq -r .started_at metadata.json)" +%s)
+END_EPOCH=$(date +%s)
+DURATION=$((END_EPOCH - START_EPOCH))
+```
+
+**HARD STOP**: §6-8 참조.
+
 ## 2. 언어 정책
 
 - **사용자 대면 응답 / 학습 대화**: 한국어
@@ -218,6 +252,7 @@ status: in_progress
    (b) 이벤트 batch append (§0-8) 수행,
    (c) tool 완료 후 **단일 사용자 응답** 1회 생성.
    §3 P5 평가별 후속 처리 문구는 *톤 가이드* 로만 참고하고, 사용자 응답 안에 녹여 넣는다 — 별도 preamble 로 뽑아 쓰지 말 것.
+8. 모든 timestamp 필드 (`started_at`/`completed_at`/`generated_at`, 이벤트 tail ISO 8601) 는 §1.2 Timestamp Acquisition Protocol 의 `date -Iseconds` shell 호출로만 획득. LLM 이 직접 생성한 timestamp 는 세션 측정 무효화 (aggregate 에서 `[INVALID_TIMESTAMP]` 기록 후 제외).
 
 ## 7. 재실행·복구 원칙
 

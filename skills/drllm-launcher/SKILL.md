@@ -57,21 +57,26 @@ mkdir -p ".drllm/sessions/${session_id}"
 
 ### 5. metadata.json 작성
 
-다음 schema 정확히 준수하여 `.drllm/sessions/${session_id}/metadata.json` 작성:
+다음 schema 정확히 준수하여 `.drllm/sessions/${session_id}/metadata.json` 작성.
 
-````json
+`started_at` 은 LLM 직접 생성 금지 — shell 호출로 획득 (§1.2 Timestamp Acquisition Protocol, §6-8):
+
+````bash
+NOW=$(date -Iseconds)
+cat > ".drllm/sessions/${session_id}/metadata.json" <<EOF
 {
-  "session_id": "<session_id>",
+  "session_id": "${session_id}",
   "topic": "<원본 주제, 한국어 OK>",
-  "slug": "<slug>",
+  "slug": "${slug}",
   "domain": "born2beroot",
-  "started_at": "<ISO 8601 with KST offset, e.g. 2026-04-14T10:30:00+09:00>",
+  "started_at": "${NOW}",
   "completed_at": null,
   "status": "research",
   "url_verify_total": 0,
   "url_verify_count": 0,
   "url_verify_ratio": 0.0
 }
+EOF
 ````
 
 ### 6. 사용자에게 알림 (한국어)
