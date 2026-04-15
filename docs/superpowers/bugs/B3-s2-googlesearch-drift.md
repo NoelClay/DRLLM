@@ -1,7 +1,7 @@
 # B3 — S2 uses GoogleSearch beyond plan scope (fetch-only)
 
 **Severity**: Minor (v0.1) / Important (v0.5)
-**Status**: open
+**Status**: in_progress
 **Scheduled**: SP-2 (tool allowlist policy via `BeforeToolSelection` hook)
 **Filed**: 2026-04-15 (STEP 4 smoke, M1 2차 InnoDB 세션)
 

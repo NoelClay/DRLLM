@@ -20,5 +20,5 @@
 |----|-------|----------|--------|-----------|
 | B1 | S2 citations count ≠ metadata url_verify_total | Important | in_progress | Task 21 |
 | B2 | Timestamp hallucination (started_at / generated_at) | Important | in_progress | Task 20 + drllm-core; Task 22 detection |
-| B3 | S2 uses GoogleSearch beyond plan scope (fetch-only) | Minor | open | SP-2 (tool allowlist) |
+| B3 | S2 uses GoogleSearch beyond plan scope (fetch-only) | Minor | in_progress | SP-2 (tool allowlist) |
 | B4 | L3 fixtures cover only happy path (B1/B2 detection untested permanently) | Minor | open | SP-2 (negative fixtures) |

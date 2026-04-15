@@ -51,6 +51,16 @@ S0가 생성한 세션 메타를 읽고, 주제를 서브쿼리로 분해, fetch
 - 실패한 서브쿼리는 대안 쿼리로 1회 재시도 후 실패 기록
 - 모든 서브쿼리 실패 → `status="research_failed"` 후 종료
 
+### 3.1 도구 제한 (v0.1 B3 fix, §6-10 참조)
+
+S2 는 오직 `fetch` MCP 만 호출 가능. 다음은 모두 **금지**:
+- `GoogleSearch` / `WebFetch` / 기타 built-in 검색 도구
+- 외부 MCP 검색 도구 (예: `paper-search`, `github` — v0.5 에서 Tier 2)
+
+필요한 URL 을 모르면 `context/domains/<domain>.md` domain profile 의 version-pinned URL 을 base 로 사용. 부족하면 해당 citation 을 `verified=false` 로 표시하고 S4 인용 대상에서 제외 — **fetch 실패를 GoogleSearch 로 우회 금지**.
+
+`fetch` 가 content_truncated 반환 시: 같은 URL 에 대해 `start_index` 파라미터 조정하여 재호출 (v0.1 허용). `fetch` → `GoogleSearch` 대체 금지.
+
 ### 4. Layer 2 Call 1 — 응답 생성 (schema 강제)
 
 fetch 결과들을 결합하여 다음 JSON schema로 강제 응답 생성 (Gemini `response_schema`):
