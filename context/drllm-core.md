@@ -256,7 +256,7 @@ status: in_progress
    §3 P5 평가별 후속 처리 문구는 *톤 가이드* 로만 참고하고, 사용자 응답 안에 녹여 넣는다 — 별도 preamble 로 뽑아 쓰지 말 것.
 8. 모든 timestamp 필드 (`started_at`/`completed_at`/`generated_at`, 이벤트 tail ISO 8601) 는 §1.2 Timestamp Acquisition Protocol 의 `date -Iseconds` shell 호출로만 획득. LLM 이 직접 생성한 timestamp 는 세션 측정 무효화 (aggregate 에서 `[INVALID_TIMESTAMP]` 기록 후 제외).
 9. `research-results.md` Citations 테이블 row 수 는 `metadata.json.url_verify_count` 와 반드시 일치 (B1). 테이블은 verified=true citation 만 포함 (S2 §6 규칙). 유사 URL (fragment 만 다름) 병합 금지. 불일치 시 세션 status 를 `research_failed` 로 남기고 사용자에게 원인 보고 (aggregate 에서 `[INVALID_CITATION_COUNT]` 기록 후 M1 제외).
-10. S2 는 `fetch` MCP 외의 검색/fetch 도구 호출 금지 (v0.1). `GoogleSearch`/`WebFetch`/`search_web` 등 built-in 검색 도구 또는 외부 MCP 검색 도구가 S2 turn 안에서 호출되면: (a) 해당 결과는 citation 으로 기록 금지, (b) aggregate 에서 `[EXTERNAL_TOOL_LEAK] session=<id> tool=<name>` 이벤트 기록 후 세션 측정 무효화. v0.5 SP-2 에서 BeforeToolSelection hook 으로 tool memory 차단 예정.
+10. S2 는 `fetch` MCP 외의 검색/fetch 도구 호출 금지 (v0.1). `GoogleSearch`/`WebFetch`/`search_web` 등 built-in 검색 도구 또는 외부 MCP 검색 도구가 S2 turn 안에서 호출되면: (a) 해당 결과는 citation 으로 기록 금지, (b) [EXTERNAL_TOOL_LEAK] 이벤트 aggregate 검출은 **v0.5 retrofit 예정** (현재 aggregate-metrics.sh 는 per-session tool-call 로그를 수집하지 않음) — v0.1 은 skill-level rule + 코드 리뷰로만 강제. v0.5 SP-2 에서 BeforeToolSelection hook 으로 tool memory 차단 + aggregate 연결.
 
 ## 7. 재실행·복구 원칙
 

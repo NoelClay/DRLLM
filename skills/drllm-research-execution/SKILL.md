@@ -46,7 +46,7 @@ S0가 생성한 세션 메타를 읽고, 주제를 서브쿼리로 분해, fetch
 각 서브쿼리마다 fetch MCP를 호출한다:
 
 - `hint_url` 이 있으면 먼저 그 URL을 fetch
-- `hint_url` 이 없거나 응답이 빈 경우: web 검색(google_web_search)을 hint_url 생성용으로 사용 후 top-3 fetch
+- `hint_url` 이 없거나 응답이 빈 경우: `context/domains/<domain>.md` domain profile 의 version-pinned URL 을 fallback 으로 사용. domain profile 에도 없으면 해당 서브쿼리 skip + `verified=false` 기록 — **web 검색(GoogleSearch/google_web_search) 호출 금지 (§3.1 + drllm-core §6-10)**
 - fetch 결과는 raw text로 보존 (LLM 해석 전에 저장)
 - 실패한 서브쿼리는 대안 쿼리로 1회 재시도 후 실패 기록
 - 모든 서브쿼리 실패 → `status="research_failed"` 후 종료
