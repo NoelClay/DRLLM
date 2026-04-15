@@ -2,6 +2,12 @@
 # M1 POC aggregate metrics from .drllm/sessions/*/
 set -euo pipefail
 
+# Portability guard: Linux/GNU coreutils required.
+if ! date -Iseconds -d "2026-01-01T00:00:00+00:00" >/dev/null 2>&1; then
+  echo "aggregate-metrics.sh requires GNU date (coreutils). On macOS: brew install coreutils; alias date=gdate." >&2
+  exit 2
+fi
+
 SESSIONS_DIR="${1:-.drllm/sessions}"
 
 if [ ! -d "$SESSIONS_DIR" ]; then
@@ -66,6 +72,11 @@ for session in "$SESSIONS_DIR"/*/; do
             b1_flagged=1
             echo "[INVALID_CITATION_COUNT] session=${session_id} status=research_failed" >&2
         fi
+        # If status is past research phase but research-results.md is absent → invalid
+        if { [ "$meta_status" = "done" ] || [ "$meta_status" = "tutor" ]; } && [ ! -f "$results" ]; then
+            b1_flagged=1
+            echo "[INVALID_CITATION_COUNT] session=${session_id} reason=research_results_missing status=${meta_status}" >&2
+        fi
         # If research-results.md exists, compare citation table rows vs url_verify_count
         if [ -f "$results" ]; then
             row_count=$(grep -c '^| [0-9]' "$results" 2>/dev/null || true)
@@ -81,6 +92,10 @@ for session in "$SESSIONS_DIR"/*/; do
         fi
 
         # ── B2: [INVALID_TIMESTAMP] detection ───────────────────────────────
+        # B2 tolerance: 3600s (1 hour). Tight enough to catch the canonical
+        # hallucination case (~2.8h gap observed), loose enough for normal
+        # session-duration mtime drift during in-progress sessions.
+        MTIME_TOLERANCE_SEC=3600
         b2_flagged=0
         started_at=$(jq -r '.started_at // "null"' "$meta")
         completed_at=$(jq -r '.completed_at // "null"' "$meta")
@@ -94,13 +109,13 @@ for session in "$SESSIONS_DIR"/*/; do
                 mtime=$(stat --format="%Y" "$meta" 2>/dev/null || echo "0")
                 echo "[INVALID_TIMESTAMP] session=${session_id} started_at=${started_at} mtime=${mtime} reason=unparseable" >&2
             else
-                # Compare started_at epoch vs file mtime (1 day tolerance)
+                # Compare started_at epoch vs file mtime (MTIME_TOLERANCE_SEC tolerance)
                 mtime=$(stat --format="%Y" "$meta" 2>/dev/null || echo "0")
                 diff_sec=$(( started_epoch - mtime ))
                 if [ "$diff_sec" -lt 0 ]; then
                     diff_sec=$(( -diff_sec ))
                 fi
-                if [ "$diff_sec" -gt 86400 ]; then
+                if [ "$diff_sec" -gt "$MTIME_TOLERANCE_SEC" ]; then
                     b2_flagged=1
                     echo "[INVALID_TIMESTAMP] session=${session_id} started_at=${started_at} mtime=${mtime} reason=mtime_divergence diff_sec=${diff_sec}" >&2
                 fi

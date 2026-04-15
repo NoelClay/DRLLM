@@ -127,3 +127,68 @@ ok 1 - ok 5 (all passing)
 === L3 Aggregation: SKIP (not yet implemented)
 Automated tests: PASS
 ```
+
+## Fix I5 + I1 + I3
+
+**Date**: 2026-04-14
+**Commit**: see below (feat/sp1-tiny-drllm)
+
+### I5 — B2 mtime tolerance tightened (86400s → 3600s)
+
+Added `MTIME_TOLERANCE_SEC=3600` variable with inline rationale comment at the B2 detection block. Replaced magic literal `86400` with `"$MTIME_TOLERANCE_SEC"`. Updated stale comment from "1 day tolerance" to "MTIME_TOLERANCE_SEC tolerance".
+
+**Effect on real sessions**: Both sessions now correctly flagged (previously silently passing):
+- `20260414`: diff=26516s (7.4h) — exceeds 3600s → `[INVALID_TIMESTAMP]`
+- `20260415`: diff=10198s (2.8h) — exceeds 3600s → `[INVALID_TIMESTAMP]` (canonical B2 repro case)
+
+### I1 — Missing research-results.md with status=done/tutor flagged
+
+Added branch before the existing `if [ -f "$results" ]` check. When `meta_status == "done"` or `meta_status == "tutor"` AND `research-results.md` is absent, flag `[INVALID_CITATION_COUNT] reason=research_results_missing`. The `b1_flagged` guard prevents double-counting with the outer counter block.
+
+**Fake-session B1 test — before fix:**
+```
+(no stderr output)
+Sessions invalid:
+  [INVALID_CITATION_COUNT]: 0
+```
+
+**Fake-session B1 test — after fix:**
+```
+$ rm -rf /tmp/test-b1 && mkdir -p /tmp/test-b1/fake \
+  && echo '{"status":"done","url_verify_total":0,"url_verify_count":0}' \
+     > /tmp/test-b1/fake/metadata.json \
+  && ./tools/aggregate-metrics.sh /tmp/test-b1 2>&1
+[INVALID_CITATION_COUNT] session=fake reason=research_results_missing status=done
+=== DRLLM M1 POC Aggregate Metrics ===
+Sessions total:   1
+Sessions done:    1
+Sessions invalid:
+  [P5_MISSING]:             0
+  [INVALID_CITATION_COUNT]: 1
+  [INVALID_TIMESTAMP]:      0
+...
+```
+
+Counter=1 as expected. Both `status=done` and `status=tutor` branches handled by the compound condition.
+
+### I3 — GNU date portability probe
+
+Added 5-line early-exit probe immediately after `set -euo pipefail`. Uses `date -Iseconds -d "2026-01-01T00:00:00+00:00"` as the probe date — always valid on GNU coreutils, reliably rejected by BSD `date`. Exits with code 2 (distinct from "No sessions directory" exit 1).
+
+Confirmed probe does NOT false-positive on this Linux/GNU system (probe runs silently, script continues normally).
+
+### run-tests.sh after fixes
+
+```
+=== L1 Schema ===
+L1 schema: PASS
+=== L2 Hooks (bats) ===
+1..5
+ok 1 S0 완료 → S2 체인
+ok 2 S2 완료 → S4 체인
+ok 3 stop_hook_active=true → 조용히 통과
+ok 4 관련 없는 tool → 조용히 통과
+ok 5 save_memory지만 drllm marker 아님 → pass-through
+=== L3 Aggregation: SKIP (not yet implemented) ===
+Automated tests: PASS
+```
