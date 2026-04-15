@@ -3,7 +3,8 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$(dirname "$0")/../.."  # repo root
+ROOT="$(cd "$DIR/../.." && pwd)"
+cd "$ROOT"
 
 # Sync fixture file mtimes to started_at so B2 detection doesn't false-positive.
 for session_dir in "$DIR/fixtures/sessions"/*/; do
@@ -11,7 +12,10 @@ for session_dir in "$DIR/fixtures/sessions"/*/; do
   [ -f "$meta" ] || continue
   started=$(jq -r '.started_at' "$meta")
   [ -n "$started" ] && [ "$started" != "null" ] || continue
-  touch -d "$started" "$session_dir"/* 2>/dev/null || true
+  if ! touch -d "$started" "$session_dir"/*; then
+    echo "test.sh: failed to touch files in $session_dir (started_at=$started). GNU date + write perms required." >&2
+    exit 2
+  fi
 done
 
 actual=$("$PWD/tools/aggregate-metrics.sh" "$DIR/fixtures/sessions")
