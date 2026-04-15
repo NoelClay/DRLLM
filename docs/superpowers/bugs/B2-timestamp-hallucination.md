@@ -1,8 +1,8 @@
 # B2 — Timestamp hallucination (started_at / generated_at)
 
 **Severity**: Important
-**Status**: open
-**Scheduled**: Task 20 + `drllm-core.md` §1 / §5 (timestamp 획득 계약 추가)
+**Status**: in_progress
+**Scheduled**: Task 20 + `drllm-core.md` §1 / §5 (timestamp 획득 계약 추가); Task 22 adds aggregate detection; full closure pending Task 24 smoke re-verification
 **Filed**: 2026-04-15 (STEP 4 smoke, M1 2차 InnoDB 세션)
 
 ## Observed
