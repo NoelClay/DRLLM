@@ -18,6 +18,6 @@
 
 | ID | Title | Severity | Status | Scheduled |
 |----|-------|----------|--------|-----------|
-| B1 | S2 citations count ≠ metadata url_verify_total | Important | open | Task 21 |
+| B1 | S2 citations count ≠ metadata url_verify_total | Important | in_progress | Task 21 |
 | B2 | Timestamp hallucination (started_at / generated_at) | Important | open | Task 20 + drllm-core |
 | B3 | S2 uses GoogleSearch beyond plan scope (fetch-only) | Minor | open | SP-2 (tool allowlist) |

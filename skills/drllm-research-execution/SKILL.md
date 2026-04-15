@@ -143,17 +143,42 @@ citations_verified: <count>/<total>
 | 2 | <url> | "<quote>" | <source_type> | ❌ (제거됨) |
 ````
 
-### 7. metadata.json 갱신
+### 6.1 Citations 테이블 무결성 (v2.2 B1 fix)
 
-````json
-{
-  ...
-  "url_verify_total": <N>,
-  "url_verify_count": <M>,
-  "url_verify_ratio": <M/N>,
-  "status": "tutor"
-}
-````
+**규칙**:
+- Call 2 에서 `verified=true` 로 판정된 citation 은 빠짐없이 Citations 테이블에 **각각 별도 row** 로 기재.
+- 유사 URL (같은 base URL + 다른 `#fragment` 또는 `?query`) 은 **별도 row 로 유지**. 병합 금지.
+- Citations 테이블 row 수 = `url_verify_total` 이어야 함. 불일치 시 self-check 에서 감지하여 §6 HARD STOP-9 에 따라 `status="research_failed"` 전이.
+
+**Self-check (종료 직전)**:
+
+    ROW_COUNT=$(grep -c '^| [0-9]' .drllm/sessions/<id>/research-results.md)
+    TOTAL=$(jq -r .url_verify_total .drllm/sessions/<id>/metadata.json)
+    if [ "$ROW_COUNT" != "$TOTAL" ]; then
+      # HARD STOP-9 위반
+      jq '.status = "research_failed"' metadata.json > /tmp/m.$$ && mv /tmp/m.$$ metadata.json
+      echo >&2 "[S2] Citations count mismatch: table=$ROW_COUNT meta=$TOTAL"
+      exit 1
+    fi
+
+### 7. metadata.json 갱신 (Task 21에서 강조)
+
+S2 종료 전 다음 필드 반드시 갱신:
+
+    {
+      ...
+      "url_verify_total": <Call 1 citations 전체 수, 정수>,
+      "url_verify_count": <verified=true 인 수, 정수>,
+      "url_verify_ratio": <count/total, 소수점 3자리>,
+      "status": "tutor"
+    }
+
+**계산 예시**:
+- Call 1 citations = 5개
+- Call 2 verified=true = 4개
+- ratio = 0.800
+
+**Hard Gate**: 이 필드들을 기록하지 않으면 M1 POC aggregate에 반영되지 않음 — 세션 제외.
 
 ### 8. 사용자에게 보고 (한국어)
 

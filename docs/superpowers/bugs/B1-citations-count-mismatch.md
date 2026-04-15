@@ -1,7 +1,7 @@
 # B1 — S2 citations count ≠ metadata url_verify_total
 
 **Severity**: Important
-**Status**: open
+**Status**: in_progress
 **Scheduled**: Task 21 (S2 metadata recording 강화)
 **Filed**: 2026-04-15 (STEP 4 smoke, M1 2차 InnoDB 세션)
 

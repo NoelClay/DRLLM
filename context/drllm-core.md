@@ -255,6 +255,7 @@ status: in_progress
    (c) tool 완료 후 **단일 사용자 응답** 1회 생성.
    §3 P5 평가별 후속 처리 문구는 *톤 가이드* 로만 참고하고, 사용자 응답 안에 녹여 넣는다 — 별도 preamble 로 뽑아 쓰지 말 것.
 8. 모든 timestamp 필드 (`started_at`/`completed_at`/`generated_at`, 이벤트 tail ISO 8601) 는 §1.2 Timestamp Acquisition Protocol 의 `date -Iseconds` shell 호출로만 획득. LLM 이 직접 생성한 timestamp 는 세션 측정 무효화 (aggregate 에서 `[INVALID_TIMESTAMP]` 기록 후 제외).
+9. `research-results.md` Citations 테이블 row 수 는 `metadata.json.url_verify_total` 과 반드시 일치 (B1). `verified=true` 인 citation 은 모두 테이블에 row 로 표시. 유사 URL (fragment 만 다름) 병합 금지. 불일치 시 세션 status 를 `research_failed` 로 남기고 사용자에게 원인 보고 (aggregate 에서 `[INVALID_CITATION_COUNT]` 기록 후 M1 제외).
 
 ## 7. 재실행·복구 원칙
 
