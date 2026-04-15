@@ -109,3 +109,44 @@ All 5 hook tests pass. L1 schema pass. L3 skipped (not yet implemented).
 - [x] Bug tracker B1 updated: open → in_progress in both B1.md and README.md
 - [x] run-tests.sh PASS (5/5 hook tests, L1 schema)
 - [x] Commit will be atomic: all 4 files (drllm-core.md, SKILL.md, B1.md, bugs/README.md) + this report in one commit
+
+---
+
+## Fix C1 + I1 + Semantic Reconciliation
+
+**Date**: 2026-04-14
+**Commit**: b560a07
+**Scope**: Task 21 code review — 1 Critical (C1) + 1 Important (I1)
+
+### Root Cause
+
+The original B1 fix introduced a semantic conflict: §6 line 110 states
+`citations.verified=false` 항목을 **제거**하므로 Citations 테이블은 verified-only 행만
+포함한다. 그러나 §6.1 self-check 는 `url_verify_total` (전체 citations 수) 과
+비교했다. 부분 검증 세션(예: 5개 citation 중 4개 verified) 에서는 ROW_COUNT=4 ≠
+url_verify_total=5 이 되어 self-check 가 false-positive `research_failed` 를 발동하는
+C1 Critical 버그가 생긴다.
+
+§6 format example 의 `| 2 | <url> | ... | ❌ (제거됨) |` 행도 §6 line 110 규칙과
+모순된다 (제거된 항목이 테이블에 나타나면 안 됨).
+
+### Changes Applied
+
+| File | Change |
+|------|--------|
+| `skills/drllm-research-execution/SKILL.md` | §6 format example: `❌ (제거됨)` 행 제거 + prose note 추가 |
+| `skills/drllm-research-execution/SKILL.md` | §6.1 규칙: `url_verify_total` → `url_verify_count` (verified-only 테이블, §6 규칙) |
+| `skills/drllm-research-execution/SKILL.md` | §6.1 self-check: `TOTAL`/`url_verify_total` → `COUNT`/`url_verify_count` + null guard 추가 (I1) |
+| `context/drllm-core.md` | §6 HARD STOP-9: `url_verify_total` → `url_verify_count`, 테이블 정책 명시 |
+| `docs/superpowers/bugs/B1-citations-count-mismatch.md` | Fix Plan 에 수정 근거 note 추가 |
+
+### I1 Null Guard
+
+`jq -r .url_verify_count` 가 `"null"` 또는 빈 문자열을 반환하는 경우(metadata.json 에
+필드 누락 시) 기존 코드는 `ROW_COUNT != "null"` 비교로 조용히 `research_failed` 전이하여
+진단 불가능한 로그를 남겼다. null guard 추가로 field-missing 케이스는 즉시 HARD STOP-9
+진단 메시지와 함께 `exit 1` 처리.
+
+### Verification
+
+`./tools/run-tests.sh`: PASS (5/5 hook tests, L1 schema, L3 skip)
