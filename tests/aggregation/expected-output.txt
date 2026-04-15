@@ -1,0 +1,18 @@
+=== DRLLM M1 POC Aggregate Metrics ===
+Sessions total:   3
+Sessions done:    2
+Sessions invalid:
+  [P5_MISSING]:             0
+  [INVALID_CITATION_COUNT]: 0
+  [INVALID_TIMESTAMP]:      0
+--------------------------------------
+P5 score:         0.929 (필수 >= 0.700)
+URL verify:       0.842 (필수 >= 0.950)
+Skip ratio:       0.125 (기록만)
+Complete ratio:   0.667 (기록만)
+--------------------------------------
+Detail:
+  P5 checks:      7 (correct=6 partial=1)
+  P5 skips:       1
+  P5 missing:     0 (§6-1 위반 기록)
+  Citations:      19 (verified=16)

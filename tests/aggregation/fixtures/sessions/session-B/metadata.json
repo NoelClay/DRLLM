@@ -1,0 +1,12 @@
+{
+  "session_id": "fixture-B",
+  "topic": "test B",
+  "slug": "b",
+  "domain": "born2beroot",
+  "started_at": "2026-04-14T11:00:00+09:00",
+  "completed_at": "2026-04-14T11:15:00+09:00",
+  "status": "done",
+  "url_verify_total": 10,
+  "url_verify_count": 9,
+  "url_verify_ratio": 0.900
+}

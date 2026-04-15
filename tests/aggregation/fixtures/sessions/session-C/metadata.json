@@ -1,0 +1,12 @@
+{
+  "session_id": "fixture-C",
+  "topic": "test C",
+  "slug": "c",
+  "domain": "born2beroot",
+  "started_at": "2026-04-14T12:00:00+09:00",
+  "completed_at": null,
+  "status": "tutor",
+  "url_verify_total": 4,
+  "url_verify_count": 2,
+  "url_verify_ratio": 0.500
+}
