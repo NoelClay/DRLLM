@@ -108,18 +108,27 @@ timestamp 는 LLM 직접 생성 금지 — `NOW=$(date -Iseconds)` 로 한 번 c
 
 ```bash
 NOW=$(date -Iseconds)
-cat >> .drllm/sessions/<session_id>/learning-log.md <<EOF
-[SUBTOPIC] <이름> | ${NOW}
-[SOURCE] fetch::<url> | verified=true
-[P5_CHECK] Q="<질문>" | A="<사용자 답변>" | score=<correct|partial|incorrect>
-EOF
+{
+  printf '[SUBTOPIC] %s | %s\n' "$SUBTOPIC_NAME" "$NOW"
+  printf '[SOURCE] fetch::%s | verified=true\n' "$URL"
+  printf '[P5_CHECK] Q="%s" | A="%s" | score=%s\n' "$Q" "$A" "$SCORE"
+} >> ".drllm/sessions/${session_id}/learning-log.md"
 ```
 
-또는 skip / missing 시 해당 이벤트만 포함:
+skip-only 이벤트:
 
+```bash
+{
+  printf '[P5_SKIP] reason="%s"\n' "$SKIP_REASON"
+} >> ".drllm/sessions/${session_id}/learning-log.md"
 ```
-[P5_SKIP] reason="<사용자 문장 인용>"
-[P5_MISSING] triggers=T1,T3 | reason="<왜 발동 안 했는지>"
+
+missing-only 이벤트:
+
+```bash
+{
+  printf '[P5_MISSING] triggers=%s | reason="%s"\n' "$TRIGGERS" "$MISSING_REASON"
+} >> ".drllm/sessions/${session_id}/learning-log.md"
 ```
 
 평가별 후속 처리 (**톤 가이드** — §6-7 에 따라 literal 응답 이중 출력 금지. 아래 문구를 그대로 쓰지 말고 자연스러운 한국어 응답 **한 번** 에 녹여 넣는다):
@@ -160,17 +169,13 @@ EOF
 3. metadata.json 갱신:
 
    ```bash
-   # NOW, DURATION already captured above
+   jq --arg now "$NOW" --argjson dur "$DURATION" \
+      '.completed_at = $now | .status = "done" | .duration_sec = $dur' \
+      ".drllm/sessions/${session_id}/metadata.json" > /tmp/meta.$$.json \
+      && mv /tmp/meta.$$.json ".drllm/sessions/${session_id}/metadata.json"
    ```
 
-   ```json
-   {
-     "completed_at": "${NOW}",
-     "status": "done"
-   }
-   ```
-
-3. 사용자에게 요약 (한국어):
+4. 사용자에게 요약 (한국어):
 
    > "학습 완료. 인출 체크 <N>회 중 <C> correct + <P> partial. 수고하셨어요."
 

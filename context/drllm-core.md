@@ -76,12 +76,14 @@ NOW=$(date -Iseconds)   # 예: 2026-04-15T11:40:23+09:00
 
 ```bash
 NOW=$(date -Iseconds)
-cat >> .drllm/sessions/<id>/learning-log.md <<EOF
-[SUBTOPIC] <이름> | ${NOW}
-[SOURCE] fetch::<url> | verified=true
-[P5_CHECK] Q="<질문>" | A="<답변>" | score=correct
-EOF
+{
+  printf '[SUBTOPIC] %s | %s\n' "$SUBTOPIC_NAME" "$NOW"
+  printf '[SOURCE] fetch::%s | verified=true\n' "$URL"
+  printf '[P5_CHECK] Q="%s" | A="%s" | score=%s\n' "$Q" "$A" "$SCORE"
+} >> .drllm/sessions/<id>/learning-log.md
 ```
+
+> `%s` 는 literal 치환 — shell metachar 재해석 없음. `$`/`` ` ``/`$()` 포함 citation quote 안전.
 
 `duration_sec` 계산:
 ```bash
